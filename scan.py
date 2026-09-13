@@ -1,9 +1,8 @@
 """
-Bet Scout — autonomous daily scan.
+BK's Bets — autonomous daily scan.
 Runs on GitHub Actions' free servers on a schedule (see .github/workflows/scan.yml).
 Fetches live odds, converts them to implied probability, and writes a static
-docs/index.html page that GitHub Pages serves for free. Your phone just
-displays whatever this last published — no app, no key, no button on the phone.
+docs/index.html page that GitHub Pages serves for free.
 """
 
 import os
@@ -168,7 +167,7 @@ def build_accas(win_picks):
         return {"name": name, "legs": legs, "odds": odds, "prob": prob, "risk": risk, "note": note}
 
     if len(pool) >= 2:
-        combos.append(make("Double", pool[:2], "low", "The steadiest combo on today's board — still not a sure thing."))
+        combos.append(make("Double", pool[:2], "low", "The steadiest combo on the board — still not a sure thing."))
     if len(pool) >= 3:
         combos.append(make("Treble", pool[:3], "med", "Notice how much the combined chance drops for one extra leg."))
     if len(pool) >= 5:
@@ -235,7 +234,10 @@ def acca_card(c):
     </div>"""
 
 
-def render_day_block(day_label, win_picks, btts_picks):
+def render_day_content(win_picks, btts_picks):
+    """Builds the Win market / BTTS / Accumulators HTML for one day's picks.
+    Used both for the server-rendered initial view and mirrored in JS for the
+    client-side 'Get fresh picks' recompute."""
     win_high = [p for p in win_picks if p["fav_prob"] >= 0.70][:6]
     win_med = [p for p in win_picks if 0.55 <= p["fav_prob"] < 0.70][:4]
     btts_high = [p for p in btts_picks if p["prob"] >= 0.65][:6]
@@ -243,13 +245,13 @@ def render_day_block(day_label, win_picks, btts_picks):
 
     win_html = "".join(match_card(p, "high") for p in win_high) + "".join(match_card(p, "med") for p in win_med)
     if not win_html:
-        win_html = f'<div class="empty">No standout favourites for {day_label.lower()} right now — check back later.</div>'
+        win_html = '<div class="empty">No standout favourites right now.</div>'
 
     btts_html = "".join(match_card(p, "high" if p["prob"] >= 0.75 else "med", "— both teams to score") for p in btts_high)
     if btts_html:
         btts_section = f'<div class="section-label">Both teams to score</div>{btts_html}'
     else:
-        btts_section = f'<div class="section-label">Both teams to score</div><div class="empty">No high-confidence BTTS candidates for {day_label.lower()}, or this market wasn\'t available from the data source for these fixtures.</div>'
+        btts_section = '<div class="section-label">Both teams to score</div><div class="empty">No high-confidence BTTS candidates right now.</div>'
 
     acca_html = "".join(acca_card(c) for c in accas)
     acca_section = ""
@@ -259,33 +261,34 @@ def render_day_block(day_label, win_picks, btts_picks):
         <div class="acca-math"><b>Read this first:</b> every leg has to win, or the whole bet returns nothing. Three legs at 80% each is only about a 51% chance combined, not 80%.</div>
         {acca_html}"""
 
-    return f"""
-    <div class="day-block">
-      <div class="day-heading">{day_label}</div>
-      <div class="section-label">Win market</div>
+    return f"""<div class="section-label">Win market</div>
       {win_html}
       {btts_section}
-      {acca_section}
-    </div>"""
+      {acca_section}"""
 
 
 def render(picks, league_errors):
     now = datetime.datetime.now(datetime.timezone.utc)
     generated = now.strftime("%a %d %b, %H:%M UTC")
 
-    today_html = render_day_block("Today", picks["today"]["win"], picks["today"]["btts"])
-    tomorrow_html = render_day_block("Tomorrow", picks["tomorrow"]["win"], picks["tomorrow"]["btts"])
+    today_content = render_day_content(picks["today"]["win"], picks["today"]["btts"])
+    tomorrow_content = render_day_content(picks["tomorrow"]["win"], picks["tomorrow"]["btts"])
 
     errors_note = ""
     if league_errors:
         errors_note = f'<div class="note-line">Couldn\'t reach data for: {", ".join(league_errors)} this run — will retry automatically next scan.</div>'
 
-    return HTML_TEMPLATE.format(
-        generated=generated,
-        today_html=today_html,
-        tomorrow_html=tomorrow_html,
-        errors_note=errors_note,
-    )
+    # Full (untruncated) today's win/BTTS lists, embedded for the client-side
+    # "Get fresh picks" button to re-filter against the visitor's real clock.
+    today_data_json = json.dumps(picks["today"]).replace("</", "<\\/")
+
+    html = HTML_TEMPLATE
+    html = html.replace("%%GENERATED%%", generated)
+    html = html.replace("%%TODAY_CONTENT%%", today_content)
+    html = html.replace("%%TOMORROW_CONTENT%%", tomorrow_content)
+    html = html.replace("%%ERRORS_NOTE%%", errors_note)
+    html = html.replace("%%TODAY_DATA_JSON%%", today_data_json)
+    return html
 
 
 HTML_TEMPLATE = """<!DOCTYPE html>
@@ -295,88 +298,244 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="BK'sBets">
-<title>BK'sBets — Auto-updated</title>
+<meta name="apple-mobile-web-app-title" content="BK's Bets">
+<title>BK's Bets</title>
 <style>
-:root{{--pitch-dark:#0a0a0a;--pitch:#141414;--pitch-light:#1f1f1f;--line:#3a3a3a;--chalk:#f5f5f5;--chalk-dim:#9a9a9a;--flood:#ffffff;--amber:#c9c9c9;--red-card:#7a7a7a;--font-head:'Oswald','Arial Narrow',sans-serif;--font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}}
-*{{box-sizing:border-box;}}
-html,body{{margin:0;padding:0;background:var(--pitch-dark);color:var(--chalk);font-family:var(--font-body);}}
-body{{min-height:100vh;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);background-image:repeating-linear-gradient(90deg,rgba(255,255,255,0.02) 0px,rgba(255,255,255,0.02) 1px,transparent 1px,transparent 64px),radial-gradient(circle at 50% -10%,var(--pitch-light),var(--pitch-dark) 65%);}}
-.wrap{{max-width:520px;margin:0 auto;padding:28px 18px 60px;}}
-header{{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:10px;border-bottom:1px solid var(--line);padding-bottom:16px;}}
-.kick{{width:34px;height:34px;border-radius:50%;border:2px solid var(--flood);position:relative;margin-bottom:8px;}}
-.kick::before,.kick::after{{content:"";position:absolute;background:var(--flood);}}
-.kick::before{{width:14px;height:2px;top:50%;left:50%;transform:translate(-50%,-50%) rotate(20deg);}}
-.kick::after{{width:2px;height:14px;top:50%;left:50%;transform:translate(-50%,-50%) rotate(20deg);}}
-h1{{font-family:var(--font-head);font-weight:600;font-size:26px;letter-spacing:0.3px;margin:0;text-transform:uppercase;}}
-.sub{{color:var(--chalk-dim);font-size:13px;margin-top:2px;}}
-.generated{{font-size:11px;color:var(--flood);text-align:right;text-transform:uppercase;letter-spacing:0.5px;}}
-.disclaimer{{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.5;color:var(--chalk-dim);margin:18px 0 26px;}}
-.disclaimer strong{{color:var(--chalk);}}
-.section-label{{font-family:var(--font-head);text-transform:uppercase;font-size:13px;letter-spacing:2px;color:var(--chalk-dim);margin:34px 0 14px;display:flex;align-items:center;gap:10px;}}
-.section-label::after{{content:"";flex:1;height:1px;background:var(--line);}}
-.day-block{{margin-top:36px;padding-top:26px;border-top:2px solid var(--line);}}
-.day-block:first-of-type{{margin-top:0;padding-top:0;border-top:none;}}
-.day-heading{{font-family:var(--font-head);font-weight:600;font-size:22px;text-transform:uppercase;letter-spacing:1px;color:var(--flood);}}
-.match{{background:linear-gradient(180deg,var(--pitch-light),var(--pitch));border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;position:relative;overflow:hidden;}}
-.match::before{{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;}}
-.match.high::before{{background:var(--flood);}}
-.match.med::before{{background:var(--amber);}}
-.match-top{{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}}
-.league{{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--chalk-dim);}}
-.kickoff{{font-size:11px;color:var(--chalk-dim);white-space:nowrap;}}
-.teams{{font-family:var(--font-head);font-size:21px;margin:6px 0 12px;letter-spacing:0.3px;}}
-.teams .vs{{color:var(--chalk-dim);font-size:15px;margin:0 6px;}}
-.pick-row{{display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,0.25);border-radius:9px;padding:10px 12px;margin-bottom:10px;}}
-.pick-label{{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--chalk-dim);margin-bottom:2px;}}
-.pick-value{{font-family:var(--font-head);font-size:16px;color:var(--flood);}}
-.conf{{display:flex;flex-direction:column;align-items:flex-end;}}
-.conf-bar{{width:70px;height:5px;border-radius:3px;background:rgba(255,255,255,0.12);margin-top:5px;overflow:hidden;}}
-.conf-fill{{height:100%;background:var(--flood);border-radius:3px;}}
-.med .pick-value{{color:var(--amber);}}
-.med .conf-fill{{background:var(--amber);}}
-.why{{font-size:13px;line-height:1.55;color:var(--chalk-dim);}}
-.why b{{color:var(--chalk);font-weight:600;}}
-.empty{{text-align:center;padding:30px 20px;color:var(--chalk-dim);font-size:14px;line-height:1.6;}}
-.acca{{background:linear-gradient(180deg,var(--pitch-light),var(--pitch));border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;}}
-.acca-top{{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}}
-.acca-name{{font-family:var(--font-head);font-size:16px;text-transform:uppercase;letter-spacing:0.5px;}}
-.risk-tag{{font-size:10.5px;text-transform:uppercase;letter-spacing:1px;padding:3px 9px;border-radius:20px;font-family:var(--font-head);}}
-.risk-low{{background:rgba(255,255,255,0.12);color:var(--chalk);}}
-.risk-med{{background:rgba(255,255,255,0.07);color:var(--chalk-dim);}}
-.risk-high{{background:var(--chalk);color:var(--pitch-dark);}}
-.acca-legs{{list-style:none;padding:0;margin:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}}
-.acca-legs li{{padding:8px 0;font-size:13px;display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.04);}}
-.acca-legs li:last-child{{border-bottom:none;}}
-.acca-legs .leg-prob{{color:var(--chalk-dim);font-size:12px;}}
-.acca-stats{{display:flex;justify-content:space-between;margin-top:12px;}}
-.acca-stat .l{{font-size:10.5px;text-transform:uppercase;letter-spacing:1px;color:var(--chalk-dim);margin-bottom:2px;}}
-.acca-stat .v{{font-family:var(--font-head);font-size:19px;}}
-.acca-stat.combo-prob .v{{color:var(--amber);}}
-.acca-stat.combo-odds .v{{color:var(--flood);}}
-.acca-stat.combo-return .v{{color:var(--chalk);font-size:15px;}}
-.acca-warning{{font-size:11.5px;color:var(--chalk-dim);margin-top:12px;line-height:1.5;border-top:1px dashed var(--line);padding-top:10px;}}
-.acca-math{{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:14px 16px;font-size:12.5px;line-height:1.6;color:var(--chalk-dim);margin-bottom:20px;}}
-.note-line{{font-size:11.5px;color:var(--chalk-dim);margin-top:30px;line-height:1.6;}}
-footer{{margin-top:34px;text-align:center;font-size:11.5px;color:var(--chalk-dim);line-height:1.7;}}
+:root{--pitch-dark:#0a0a0a;--pitch:#141414;--pitch-light:#1c1c1c;--line:#2e2e2e;--chalk:#f5f5f5;--chalk-dim:#96969a;--flood:#ffffff;--amber:#c9c9c9;}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;background:var(--pitch-dark);color:var(--chalk);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+body{min-height:100vh;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);}
+.wrap{max-width:520px;margin:0 auto;padding:24px 18px 60px;}
+header{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;}
+.brand{display:flex;align-items:center;gap:12px;}
+.logo-mark{width:38px;height:38px;border-radius:10px;background:var(--chalk);color:var(--pitch-dark);display:flex;align-items:center;justify-content:center;font-family:'Oswald','Arial Narrow',sans-serif;font-weight:700;font-size:14px;letter-spacing:-0.5px;flex-shrink:0;}
+h1{font-family:'Oswald','Arial Narrow',sans-serif;font-weight:600;font-size:20px;letter-spacing:0.2px;margin:0;}
+.generated{font-size:11px;color:var(--chalk-dim);text-align:right;line-height:1.5;white-space:nowrap;}
+.disclaimer{background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.5;color:var(--chalk-dim);margin-bottom:18px;}
+.disclaimer strong{color:var(--chalk);}
+.tabs{display:flex;gap:4px;background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:10px;padding:4px;margin-bottom:16px;}
+.tab{flex:1;text-align:center;padding:9px 0;border-radius:7px;font-family:'Oswald','Arial Narrow',sans-serif;font-size:13px;font-weight:500;letter-spacing:0.3px;color:var(--chalk-dim);background:transparent;border:none;cursor:pointer;}
+.tab.active{background:var(--chalk);color:var(--pitch-dark);}
+.refresh-row{margin-bottom:22px;}
+.btn-refresh{width:100%;background:transparent;border:1px solid var(--line);color:var(--chalk);padding:11px 16px;border-radius:9px;font-family:'Oswald','Arial Narrow',sans-serif;font-size:13px;font-weight:500;letter-spacing:0.3px;cursor:pointer;}
+.btn-refresh:active{background:rgba(255,255,255,0.08);}
+.refresh-status{font-size:11.5px;color:var(--chalk-dim);margin-top:9px;line-height:1.5;text-align:center;}
+.section-label{font-family:'Oswald','Arial Narrow',sans-serif;text-transform:uppercase;font-size:12.5px;letter-spacing:1.5px;color:var(--chalk-dim);margin:28px 0 12px;display:flex;align-items:center;gap:10px;}
+.section-label:first-child{margin-top:0;}
+.section-label::after{content:"";flex:1;height:1px;background:var(--line);}
+.match{background:var(--pitch-light);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px;position:relative;overflow:hidden;}
+.match::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;}
+.match.high::before{background:var(--flood);}
+.match.med::before{background:var(--amber);opacity:0.5;}
+.match-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+.league{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--chalk-dim);}
+.kickoff{font-size:11px;color:var(--chalk-dim);white-space:nowrap;font-variant-numeric:tabular-nums;}
+.teams{font-family:'Oswald','Arial Narrow',sans-serif;font-size:19px;margin:6px 0 12px;letter-spacing:0.2px;}
+.teams .vs{color:var(--chalk-dim);font-size:14px;margin:0 6px;}
+.pick-row{display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,0.3);border-radius:8px;padding:10px 12px;margin-bottom:10px;}
+.pick-label{font-size:10.5px;text-transform:uppercase;letter-spacing:0.8px;color:var(--chalk-dim);margin-bottom:2px;}
+.pick-value{font-family:'Oswald','Arial Narrow',sans-serif;font-size:15px;color:var(--flood);}
+.conf{display:flex;flex-direction:column;align-items:flex-end;}
+.conf-bar{width:64px;height:4px;border-radius:2px;background:rgba(255,255,255,0.12);margin-top:5px;overflow:hidden;}
+.conf-fill{height:100%;background:var(--flood);border-radius:2px;}
+.med .pick-value{color:var(--amber);}
+.med .conf-fill{background:var(--amber);}
+.why{font-size:12.5px;line-height:1.5;color:var(--chalk-dim);}
+.why b{color:var(--chalk);font-weight:600;}
+.empty{text-align:center;padding:26px 20px;color:var(--chalk-dim);font-size:13.5px;line-height:1.6;}
+.acca{background:var(--pitch-light);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px;}
+.acca-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.acca-name{font-family:'Oswald','Arial Narrow',sans-serif;font-size:15px;letter-spacing:0.2px;}
+.risk-tag{font-size:10px;text-transform:uppercase;letter-spacing:0.8px;padding:3px 9px;border-radius:20px;font-family:'Oswald','Arial Narrow',sans-serif;}
+.risk-low{background:rgba(255,255,255,0.12);color:var(--chalk);}
+.risk-med{background:rgba(255,255,255,0.07);color:var(--chalk-dim);}
+.risk-high{background:var(--chalk);color:var(--pitch-dark);}
+.acca-legs{list-style:none;padding:0;margin:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+.acca-legs li{padding:8px 0;font-size:13px;display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.04);}
+.acca-legs li:last-child{border-bottom:none;}
+.acca-legs .leg-prob{color:var(--chalk-dim);font-size:12px;font-variant-numeric:tabular-nums;}
+.acca-stats{display:flex;justify-content:space-between;margin-top:12px;}
+.acca-stat .l{font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--chalk-dim);margin-bottom:2px;}
+.acca-stat .v{font-family:'Oswald','Arial Narrow',sans-serif;font-size:18px;font-variant-numeric:tabular-nums;}
+.acca-stat.combo-prob .v{color:var(--amber);}
+.acca-stat.combo-odds .v{color:var(--flood);}
+.acca-stat.combo-return .v{color:var(--chalk);font-size:14px;}
+.acca-warning{font-size:11px;color:var(--chalk-dim);margin-top:12px;line-height:1.5;border-top:1px dashed var(--line);padding-top:10px;}
+.acca-math{background:rgba(255,255,255,0.03);border:1px solid var(--line);border-radius:10px;padding:13px 15px;font-size:12px;line-height:1.6;color:var(--chalk-dim);margin-bottom:16px;}
+.note-line{font-size:11px;color:var(--chalk-dim);margin-top:26px;line-height:1.6;}
+footer{margin-top:32px;text-align:center;font-size:11px;color:var(--chalk-dim);line-height:1.7;}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div>
-      <div class="kick"></div>
-      <h1>BK'sBets</h1>
-      <div class="sub">Auto-updated · no app needed</div>
+    <div class="brand">
+      <div class="logo-mark">BK</div>
+      <h1>BK's Bets</h1>
     </div>
-    <div class="generated">Updated<br>{generated}</div>
+    <div class="generated">Updated<br>%%GENERATED%%</div>
   </header>
-  <div class="disclaimer"><strong>No pick here is a sure thing.</strong> These come straight from live bookmaker odds, converted to probability. Odds move — check the live price before backing anything, and stake only what you're fine losing.</div>
-  {today_html}
-  {tomorrow_html}
-  {errors_note}
-  <footer>Published automatically by a scheduled scan · not financial advice · bet responsibly</footer>
+  <div class="disclaimer"><strong>These are odds-based estimates, not guarantees.</strong> Every percentage reflects live bookmaker prices with the margin removed. Odds move — check the current price before staking, and only bet what you can afford to lose.</div>
+  <div class="tabs">
+    <button class="tab active" id="tab-today" type="button">Today</button>
+    <button class="tab" id="tab-tomorrow" type="button">Tomorrow</button>
+  </div>
+  <div id="panel-today" class="panel">
+    <div class="refresh-row">
+      <button class="btn-refresh" id="refresh-btn" type="button">Get fresh picks</button>
+      <div class="refresh-status" id="refresh-status">Picks below are from the last scheduled scan.</div>
+    </div>
+    <div id="today-content">
+      %%TODAY_CONTENT%%
+    </div>
+  </div>
+  <div id="panel-tomorrow" class="panel" style="display:none">
+    %%TOMORROW_CONTENT%%
+  </div>
+  %%ERRORS_NOTE%%
+  <footer>BK's Bets · Live odds, updated automatically · Not financial advice · 18+ · Bet responsibly</footer>
 </div>
+<script id="today-data" type="application/json">%%TODAY_DATA_JSON%%</script>
+<script>
+(function(){
+  var dataEl = document.getElementById('today-data');
+  var TODAY_DATA = { win: [], btts: [] };
+  try { TODAY_DATA = JSON.parse(dataEl.textContent); } catch (e) {}
+
+  function fmtPct(p){
+    return (p*100) < 1 ? (p*100).toFixed(1) : Math.round(p*100).toString();
+  }
+  function fmtTime(iso){
+    try {
+      var d = new Date(iso);
+      var h = String(d.getUTCHours()).padStart(2,'0');
+      var m = String(d.getUTCMinutes()).padStart(2,'0');
+      return h + ':' + m + ' UTC';
+    } catch (e) { return ''; }
+  }
+  function esc(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function matchCardHtml(p, tier, marketLabel){
+    marketLabel = marketLabel || 'to win';
+    var pct = fmtPct(p.fav_prob !== undefined ? p.fav_prob : p.prob);
+    var teamLine = p.fav_team || 'Both teams to score';
+    return '' +
+      '<div class="match ' + tier + '">' +
+        '<div class="match-top">' +
+          '<span class="league">' + esc(p.league) + '</span>' +
+          '<span class="kickoff">' + fmtTime(p.kickoff) + '</span>' +
+        '</div>' +
+        '<div class="teams">' + esc(p.home) + ' <span class="vs">v</span> ' + esc(p.away) + '</div>' +
+        '<div class="pick-row ' + tier + '">' +
+          '<div>' +
+            '<div class="pick-label">Market</div>' +
+            '<div class="pick-value">' + esc(teamLine) + ' ' + esc(marketLabel) + '</div>' +
+          '</div>' +
+          '<div class="conf">' +
+            '<div class="pick-label">Implied prob.</div>' +
+            '<div class="conf-bar"><div class="conf-fill" style="width:' + pct + '%"></div></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="why">Best available price ' + p.odds_used.toFixed(2) + ' implies roughly <b>' + pct + '%</b> after removing the bookmaker\'s margin.</div>' +
+      '</div>';
+  }
+  function buildAccas(winPicks){
+    var pool = winPicks.filter(function(p){ return p.fav_prob >= 0.60; });
+    var combos = [];
+    function make(name, legs, risk, note){
+      if (legs.length < 2) return null;
+      var odds = 1, prob = 1;
+      legs.forEach(function(l){ odds *= l.odds_used; prob *= l.fav_prob; });
+      return { name: name, legs: legs, odds: odds, prob: prob, risk: risk, note: note };
+    }
+    if (pool.length >= 2) combos.push(make('Double', pool.slice(0,2), 'low', 'The steadiest combo on the board — still not a sure thing.'));
+    if (pool.length >= 3) combos.push(make('Treble', pool.slice(0,3), 'med', 'Notice how much the combined chance drops for one extra leg.'));
+    if (pool.length >= 5) combos.push(make('5-Fold reach', pool.slice(0,5), 'high', 'A genuinely minority-chance outcome — small stake only, if at all.'));
+    return combos.filter(Boolean);
+  }
+  function accaCardHtml(c){
+    var pct = fmtPct(c.prob);
+    var riskClass = { low: 'risk-low', med: 'risk-med', high: 'risk-high' }[c.risk];
+    var riskText = { low: 'Lower risk', med: 'Higher risk', high: 'Long shot' }[c.risk];
+    var legsHtml = c.legs.map(function(l){
+      return '<li><span class="leg-name">' + esc(l.fav_team) + ' (' + esc(l.league) + ')</span><span class="leg-prob">' + Math.round(l.fav_prob*100) + '%</span></li>';
+    }).join('');
+    var stake = 10, returns = stake * c.odds;
+    return '' +
+      '<div class="acca">' +
+        '<div class="acca-top"><span class="acca-name">' + c.name + '</span><span class="risk-tag ' + riskClass + '">' + riskText + '</span></div>' +
+        '<ul class="acca-legs">' + legsHtml + '</ul>' +
+        '<div class="acca-stats">' +
+          '<div class="acca-stat combo-prob"><div class="l">Combined chance</div><div class="v">' + pct + '%</div></div>' +
+          '<div class="acca-stat combo-odds"><div class="l">Combined odds</div><div class="v">' + c.odds.toFixed(2) + '</div></div>' +
+          '<div class="acca-stat combo-return"><div class="l">£' + stake + ' returns</div><div class="v">£' + returns.toFixed(2) + '</div></div>' +
+        '</div>' +
+        '<div class="acca-warning">' + c.note + ' All ' + c.legs.length + ' legs must win — one loss voids the entire acca.</div>' +
+      '</div>';
+  }
+  function renderDayContent(winPicks, bttsPicks){
+    var winHigh = winPicks.filter(function(p){ return p.fav_prob >= 0.70; }).slice(0,6);
+    var winMed = winPicks.filter(function(p){ return p.fav_prob >= 0.55 && p.fav_prob < 0.70; }).slice(0,4);
+    var bttsHigh = bttsPicks.filter(function(p){ return p.prob >= 0.65; }).slice(0,6);
+    var accas = buildAccas(winPicks);
+
+    var winHtml = winHigh.map(function(p){ return matchCardHtml(p, 'high'); }).join('') +
+                  winMed.map(function(p){ return matchCardHtml(p, 'med'); }).join('');
+    if (!winHtml) winHtml = '<div class="empty">No standout favourites left today.</div>';
+
+    var bttsHtml = bttsHigh.map(function(p){ return matchCardHtml(p, p.prob >= 0.75 ? 'high' : 'med', '— both teams to score'); }).join('');
+    var bttsSection;
+    if (bttsHtml) {
+      bttsSection = '<div class="section-label">Both teams to score</div>' + bttsHtml;
+    } else {
+      bttsSection = '<div class="section-label">Both teams to score</div><div class="empty">No high-confidence BTTS candidates left today.</div>';
+    }
+
+    var accaHtml = accas.map(accaCardHtml).join('');
+    var accaSection = '';
+    if (accaHtml) {
+      accaSection = '<div class="section-label">Accumulator options</div>' +
+        '<div class="acca-math"><b>Read this first:</b> every leg has to win, or the whole bet returns nothing. Three legs at 80% each is only about a 51% chance combined, not 80%.</div>' +
+        accaHtml;
+    }
+
+    return '<div class="section-label">Win market</div>' + winHtml + bttsSection + accaSection;
+  }
+
+  var refreshBtn = document.getElementById('refresh-btn');
+  var statusEl = document.getElementById('refresh-status');
+  var contentEl = document.getElementById('today-content');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', function(){
+      var now = Date.now();
+      var winRemaining = (TODAY_DATA.win || []).filter(function(p){ return new Date(p.kickoff).getTime() > now; });
+      var bttsRemaining = (TODAY_DATA.btts || []).filter(function(p){ return new Date(p.kickoff).getTime() > now; });
+      contentEl.innerHTML = renderDayContent(winRemaining, bttsRemaining);
+      var nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      statusEl.textContent = 'Refreshed at ' + nowStr + ' — ' + winRemaining.length + ' fixture' + (winRemaining.length === 1 ? '' : 's') + ' still to kick off today.';
+    });
+  }
+
+  var tabToday = document.getElementById('tab-today');
+  var tabTomorrow = document.getElementById('tab-tomorrow');
+  var panelToday = document.getElementById('panel-today');
+  var panelTomorrow = document.getElementById('panel-tomorrow');
+  function activate(tab){
+    if (tab === 'today') {
+      tabToday.classList.add('active'); tabTomorrow.classList.remove('active');
+      panelToday.style.display = ''; panelTomorrow.style.display = 'none';
+    } else {
+      tabTomorrow.classList.add('active'); tabToday.classList.remove('active');
+      panelTomorrow.style.display = ''; panelToday.style.display = 'none';
+    }
+  }
+  if (tabToday && tabTomorrow) {
+    tabToday.addEventListener('click', function(){ activate('today'); });
+    tabTomorrow.addEventListener('click', function(){ activate('tomorrow'); });
+  }
+})();
+</script>
 </body>
 </html>
 """
