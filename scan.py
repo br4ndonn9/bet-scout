@@ -298,7 +298,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <meta name="apple-mobile-web-app-title" content="BK'sBets">
 <title>BK'sBets — Auto-updated</title>
 <style>
-:root{{--pitch-dark:#0d1f14;--pitch:#12291a;--pitch-light:#1c3d26;--line:#2c5236;--chalk:#f2f5f0;--chalk-dim:#b9c7bc;--flood:#d8ff5e;--amber:#ffb648;--red-card:#e0554a;--font-head:'Oswald','Arial Narrow',sans-serif;--font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}}
+:root{{--pitch-dark:#0a0a0a;--pitch:#141414;--pitch-light:#1f1f1f;--line:#3a3a3a;--chalk:#f5f5f5;--chalk-dim:#9a9a9a;--flood:#ffffff;--amber:#c9c9c9;--red-card:#7a7a7a;--font-head:'Oswald','Arial Narrow',sans-serif;--font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}}
 *{{box-sizing:border-box;}}
 html,body{{margin:0;padding:0;background:var(--pitch-dark);color:var(--chalk);font-family:var(--font-body);}}
 body{{min-height:100vh;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);background-image:repeating-linear-gradient(90deg,rgba(255,255,255,0.02) 0px,rgba(255,255,255,0.02) 1px,transparent 1px,transparent 64px),radial-gradient(circle at 50% -10%,var(--pitch-light),var(--pitch-dark) 65%);}}
@@ -311,7 +311,7 @@ header{{display:flex;align-items:flex-end;justify-content:space-between;margin-b
 h1{{font-family:var(--font-head);font-weight:600;font-size:26px;letter-spacing:0.3px;margin:0;text-transform:uppercase;}}
 .sub{{color:var(--chalk-dim);font-size:13px;margin-top:2px;}}
 .generated{{font-size:11px;color:var(--flood);text-align:right;text-transform:uppercase;letter-spacing:0.5px;}}
-.disclaimer{{background:rgba(224,85,74,0.08);border:1px solid rgba(224,85,74,0.35);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.5;color:var(--chalk-dim);margin:18px 0 26px;}}
+.disclaimer{{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.5;color:var(--chalk-dim);margin:18px 0 26px;}}
 .disclaimer strong{{color:var(--chalk);}}
 .section-label{{font-family:var(--font-head);text-transform:uppercase;font-size:13px;letter-spacing:2px;color:var(--chalk-dim);margin:34px 0 14px;display:flex;align-items:center;gap:10px;}}
 .section-label::after{{content:"";flex:1;height:1px;background:var(--line);}}
@@ -342,9 +342,9 @@ h1{{font-family:var(--font-head);font-weight:600;font-size:26px;letter-spacing:0
 .acca-top{{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}}
 .acca-name{{font-family:var(--font-head);font-size:16px;text-transform:uppercase;letter-spacing:0.5px;}}
 .risk-tag{{font-size:10.5px;text-transform:uppercase;letter-spacing:1px;padding:3px 9px;border-radius:20px;font-family:var(--font-head);}}
-.risk-low{{background:rgba(216,255,94,0.15);color:var(--flood);}}
-.risk-med{{background:rgba(255,182,72,0.15);color:var(--amber);}}
-.risk-high{{background:rgba(224,85,74,0.15);color:var(--red-card);}}
+.risk-low{{background:rgba(255,255,255,0.12);color:var(--chalk);}}
+.risk-med{{background:rgba(255,255,255,0.07);color:var(--chalk-dim);}}
+.risk-high{{background:var(--chalk);color:var(--pitch-dark);}}
 .acca-legs{{list-style:none;padding:0;margin:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}}
 .acca-legs li{{padding:8px 0;font-size:13px;display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.04);}}
 .acca-legs li:last-child{{border-bottom:none;}}
@@ -356,7 +356,7 @@ h1{{font-family:var(--font-head);font-weight:600;font-size:26px;letter-spacing:0
 .acca-stat.combo-odds .v{{color:var(--flood);}}
 .acca-stat.combo-return .v{{color:var(--chalk);font-size:15px;}}
 .acca-warning{{font-size:11.5px;color:var(--chalk-dim);margin-top:12px;line-height:1.5;border-top:1px dashed var(--line);padding-top:10px;}}
-.acca-math{{background:rgba(255,182,72,0.06);border:1px solid rgba(255,182,72,0.25);border-radius:12px;padding:14px 16px;font-size:12.5px;line-height:1.6;color:var(--chalk-dim);margin-bottom:20px;}}
+.acca-math{{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:14px 16px;font-size:12.5px;line-height:1.6;color:var(--chalk-dim);margin-bottom:20px;}}
 .note-line{{font-size:11.5px;color:var(--chalk-dim);margin-top:30px;line-height:1.6;}}
 footer{{margin-top:34px;text-align:center;font-size:11.5px;color:var(--chalk-dim);line-height:1.7;}}
 </style>
