@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Bet Scout">
-<title>Bet Scout — Auto-updated</title>
+<meta name="apple-mobile-web-app-title" content="BK'sBets">
+<title>BK'sBets — Auto-updated</title>
 <style>
 :root{--pitch-dark:#0d1f14;--pitch:#12291a;--pitch-light:#1c3d26;--line:#2c5236;--chalk:#f2f5f0;--chalk-dim:#b9c7bc;--flood:#d8ff5e;--amber:#ffb648;--red-card:#e0554a;--font-head:'Oswald','Arial Narrow',sans-serif;--font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
 *{box-sizing:border-box;}
@@ -25,6 +25,9 @@ h1{font-family:var(--font-head);font-weight:600;font-size:26px;letter-spacing:0.
 .disclaimer strong{color:var(--chalk);}
 .section-label{font-family:var(--font-head);text-transform:uppercase;font-size:13px;letter-spacing:2px;color:var(--chalk-dim);margin:34px 0 14px;display:flex;align-items:center;gap:10px;}
 .section-label::after{content:"";flex:1;height:1px;background:var(--line);}
+.day-block{margin-top:36px;padding-top:26px;border-top:2px solid var(--line);}
+.day-block:first-of-type{margin-top:0;padding-top:0;border-top:none;}
+.day-heading{font-family:var(--font-head);font-weight:600;font-size:22px;text-transform:uppercase;letter-spacing:1px;color:var(--flood);}
 .match{background:linear-gradient(180deg,var(--pitch-light),var(--pitch));border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;position:relative;overflow:hidden;}
 .match::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;}
 .match.high::before{background:var(--flood);}
@@ -73,14 +76,17 @@ footer{margin-top:34px;text-align:center;font-size:11.5px;color:var(--chalk-dim)
   <header>
     <div>
       <div class="kick"></div>
-      <h1>Bet Scout</h1>
+      <h1>BK'sBets</h1>
       <div class="sub">Auto-updated · no app needed</div>
     </div>
-    <div class="generated">Updated<br>Sun 13 Sep, 19:29 UTC</div>
+    <div class="generated">Updated<br>Sun 13 Sep, 19:38 UTC</div>
   </header>
   <div class="disclaimer"><strong>No pick here is a sure thing.</strong> These come straight from live bookmaker odds, converted to probability. Odds move — check the live price before backing anything, and stake only what you're fine losing.</div>
-  <div class="section-label">Win market</div>
   
+    <div class="day-block">
+      <div class="day-heading">Today</div>
+      <div class="section-label">Win market</div>
+      
     <div class="match high">
       <div class="match-top">
         <span class="league">Eredivisie</span>
@@ -94,10 +100,10 @@ footer{margin-top:34px;text-align:center;font-size:11.5px;color:var(--chalk-dim)
         </div>
         <div class="conf">
           <div class="pick-label">Implied prob.</div>
-          <div class="conf-bar"><div class="conf-fill" style="width:88%"></div></div>
+          <div class="conf-bar"><div class="conf-fill" style="width:99%"></div></div>
         </div>
       </div>
-      <div class="why">Best available price 1.15 implies roughly <b>88%</b> after removing the bookmaker's margin.</div>
+      <div class="why">Best available price 1.10 implies roughly <b>99%</b> after removing the bookmaker's margin.</div>
     </div>
     <div class="match high">
       <div class="match-top">
@@ -115,8 +121,75 @@ footer{margin-top:34px;text-align:center;font-size:11.5px;color:var(--chalk-dim)
           <div class="conf-bar"><div class="conf-fill" style="width:87%"></div></div>
         </div>
       </div>
-      <div class="why">Best available price 1.15 implies roughly <b>87%</b> after removing the bookmaker's margin.</div>
+      <div class="why">Best available price 1.14 implies roughly <b>87%</b> after removing the bookmaker's margin.</div>
     </div>
+    <div class="match high">
+      <div class="match-top">
+        <span class="league">MLS</span>
+        <span class="kickoff">22:30 UTC</span>
+      </div>
+      <div class="teams">Vancouver Whitecaps FC <span class="vs">v</span> Austin FC</div>
+      <div class="pick-row high">
+        <div>
+          <div class="pick-label">Market</div>
+          <div class="pick-value">Vancouver Whitecaps FC to win</div>
+        </div>
+        <div class="conf">
+          <div class="pick-label">Implied prob.</div>
+          <div class="conf-bar"><div class="conf-fill" style="width:76%"></div></div>
+        </div>
+      </div>
+      <div class="why">Best available price 1.31 implies roughly <b>76%</b> after removing the bookmaker's margin.</div>
+    </div>
+    <div class="match med">
+      <div class="match-top">
+        <span class="league">Primeira Liga</span>
+        <span class="kickoff">19:30 UTC</span>
+      </div>
+      <div class="teams">Famalicão <span class="vs">v</span> Sporting Lisbon</div>
+      <div class="pick-row med">
+        <div>
+          <div class="pick-label">Market</div>
+          <div class="pick-value">Sporting Lisbon to win</div>
+        </div>
+        <div class="conf">
+          <div class="pick-label">Implied prob.</div>
+          <div class="conf-bar"><div class="conf-fill" style="width:62%"></div></div>
+        </div>
+      </div>
+      <div class="why">Best available price 1.62 implies roughly <b>62%</b> after removing the bookmaker's margin.</div>
+    </div>
+      <div class="section-label">Both teams to score</div><div class="empty">No high-confidence BTTS candidates for today, or this market wasn't available from the data source for these fixtures.</div>
+      
+        <div class="section-label">Accumulator options</div>
+        <div class="acca-math"><b>Read this first:</b> every leg has to win, or the whole bet returns nothing. Three legs at 80% each is only about a 51% chance combined, not 80%.</div>
+        
+    <div class="acca">
+      <div class="acca-top"><span class="acca-name">Double</span><span class="risk-tag risk-low">Lower risk</span></div>
+      <ul class="acca-legs"><li><span class="leg-name">PSV Eindhoven (Eredivisie)</span><span class="leg-prob">99%</span></li><li><span class="leg-name">Paris Saint Germain (Ligue 1)</span><span class="leg-prob">87%</span></li></ul>
+      <div class="acca-stats">
+        <div class="acca-stat combo-prob"><div class="l">Combined chance</div><div class="v">86%</div></div>
+        <div class="acca-stat combo-odds"><div class="l">Combined odds</div><div class="v">1.25</div></div>
+        <div class="acca-stat combo-return"><div class="l">£10 returns</div><div class="v">£12.54</div></div>
+      </div>
+      <div class="acca-warning">The steadiest combo on today's board — still not a sure thing. All 2 legs must win — one loss voids the entire acca.</div>
+    </div>
+    <div class="acca">
+      <div class="acca-top"><span class="acca-name">Treble</span><span class="risk-tag risk-med">Higher risk</span></div>
+      <ul class="acca-legs"><li><span class="leg-name">PSV Eindhoven (Eredivisie)</span><span class="leg-prob">99%</span></li><li><span class="leg-name">Paris Saint Germain (Ligue 1)</span><span class="leg-prob">87%</span></li><li><span class="leg-name">Vancouver Whitecaps FC (MLS)</span><span class="leg-prob">76%</span></li></ul>
+      <div class="acca-stats">
+        <div class="acca-stat combo-prob"><div class="l">Combined chance</div><div class="v">65%</div></div>
+        <div class="acca-stat combo-odds"><div class="l">Combined odds</div><div class="v">1.64</div></div>
+        <div class="acca-stat combo-return"><div class="l">£10 returns</div><div class="v">£16.43</div></div>
+      </div>
+      <div class="acca-warning">Notice how much the combined chance drops for one extra leg. All 3 legs must win — one loss voids the entire acca.</div>
+    </div>
+    </div>
+  
+    <div class="day-block">
+      <div class="day-heading">Tomorrow</div>
+      <div class="section-label">Win market</div>
+      
     <div class="match high">
       <div class="match-top">
         <span class="league">Serie A</span>
@@ -153,24 +226,6 @@ footer{margin-top:34px;text-align:center;font-size:11.5px;color:var(--chalk-dim)
       </div>
       <div class="why">Best available price 1.29 implies roughly <b>78%</b> after removing the bookmaker's margin.</div>
     </div>
-    <div class="match high">
-      <div class="match-top">
-        <span class="league">MLS</span>
-        <span class="kickoff">22:30 UTC</span>
-      </div>
-      <div class="teams">Vancouver Whitecaps FC <span class="vs">v</span> Austin FC</div>
-      <div class="pick-row high">
-        <div>
-          <div class="pick-label">Market</div>
-          <div class="pick-value">Vancouver Whitecaps FC to win</div>
-        </div>
-        <div class="conf">
-          <div class="pick-label">Implied prob.</div>
-          <div class="conf-bar"><div class="conf-fill" style="width:76%"></div></div>
-        </div>
-      </div>
-      <div class="why">Best available price 1.31 implies roughly <b>76%</b> after removing the bookmaker's margin.</div>
-    </div>
     <div class="match med">
       <div class="match-top">
         <span class="league">Primeira Liga</span>
@@ -188,24 +243,6 @@ footer{margin-top:34px;text-align:center;font-size:11.5px;color:var(--chalk-dim)
         </div>
       </div>
       <div class="why">Best available price 1.50 implies roughly <b>67%</b> after removing the bookmaker's margin.</div>
-    </div>
-    <div class="match med">
-      <div class="match-top">
-        <span class="league">Primeira Liga</span>
-        <span class="kickoff">19:30 UTC</span>
-      </div>
-      <div class="teams">Famalicão <span class="vs">v</span> Sporting Lisbon</div>
-      <div class="pick-row med">
-        <div>
-          <div class="pick-label">Market</div>
-          <div class="pick-value">Sporting Lisbon to win</div>
-        </div>
-        <div class="conf">
-          <div class="pick-label">Implied prob.</div>
-          <div class="conf-bar"><div class="conf-fill" style="width:63%"></div></div>
-        </div>
-      </div>
-      <div class="why">Best available price 1.60 implies roughly <b>63%</b> after removing the bookmaker's margin.</div>
     </div>
     <div class="match med">
       <div class="match-top">
@@ -243,40 +280,41 @@ footer{margin-top:34px;text-align:center;font-size:11.5px;color:var(--chalk-dim)
       </div>
       <div class="why">Best available price 1.61 implies roughly <b>62%</b> after removing the bookmaker's margin.</div>
     </div>
-  <div class="section-label">Both teams to score</div><div class="empty">No high-confidence BTTS candidates today, or this market wasn't available from the data source for today's fixtures.</div>
-  
+      <div class="section-label">Both teams to score</div><div class="empty">No high-confidence BTTS candidates for tomorrow, or this market wasn't available from the data source for these fixtures.</div>
+      
         <div class="section-label">Accumulator options</div>
         <div class="acca-math"><b>Read this first:</b> every leg has to win, or the whole bet returns nothing. Three legs at 80% each is only about a 51% chance combined, not 80%.</div>
         
     <div class="acca">
       <div class="acca-top"><span class="acca-name">Double</span><span class="risk-tag risk-low">Lower risk</span></div>
-      <ul class="acca-legs"><li><span class="leg-name">PSV Eindhoven (Eredivisie)</span><span class="leg-prob">88%</span></li><li><span class="leg-name">Paris Saint Germain (Ligue 1)</span><span class="leg-prob">87%</span></li></ul>
+      <ul class="acca-legs"><li><span class="leg-name">Como (Serie A)</span><span class="leg-prob">80%</span></li><li><span class="leg-name">Inter Milan (Serie A)</span><span class="leg-prob">78%</span></li></ul>
       <div class="acca-stats">
-        <div class="acca-stat combo-prob"><div class="l">Combined chance</div><div class="v">76%</div></div>
-        <div class="acca-stat combo-odds"><div class="l">Combined odds</div><div class="v">1.32</div></div>
-        <div class="acca-stat combo-return"><div class="l">£10 returns</div><div class="v">£13.22</div></div>
+        <div class="acca-stat combo-prob"><div class="l">Combined chance</div><div class="v">62%</div></div>
+        <div class="acca-stat combo-odds"><div class="l">Combined odds</div><div class="v">1.63</div></div>
+        <div class="acca-stat combo-return"><div class="l">£10 returns</div><div class="v">£16.25</div></div>
       </div>
       <div class="acca-warning">The steadiest combo on today's board — still not a sure thing. All 2 legs must win — one loss voids the entire acca.</div>
     </div>
     <div class="acca">
       <div class="acca-top"><span class="acca-name">Treble</span><span class="risk-tag risk-med">Higher risk</span></div>
-      <ul class="acca-legs"><li><span class="leg-name">PSV Eindhoven (Eredivisie)</span><span class="leg-prob">88%</span></li><li><span class="leg-name">Paris Saint Germain (Ligue 1)</span><span class="leg-prob">87%</span></li><li><span class="leg-name">Como (Serie A)</span><span class="leg-prob">80%</span></li></ul>
+      <ul class="acca-legs"><li><span class="leg-name">Como (Serie A)</span><span class="leg-prob">80%</span></li><li><span class="leg-name">Inter Milan (Serie A)</span><span class="leg-prob">78%</span></li><li><span class="leg-name">Braga (Primeira Liga)</span><span class="leg-prob">67%</span></li></ul>
       <div class="acca-stats">
-        <div class="acca-stat combo-prob"><div class="l">Combined chance</div><div class="v">60%</div></div>
-        <div class="acca-stat combo-odds"><div class="l">Combined odds</div><div class="v">1.67</div></div>
-        <div class="acca-stat combo-return"><div class="l">£10 returns</div><div class="v">£16.66</div></div>
+        <div class="acca-stat combo-prob"><div class="l">Combined chance</div><div class="v">41%</div></div>
+        <div class="acca-stat combo-odds"><div class="l">Combined odds</div><div class="v">2.44</div></div>
+        <div class="acca-stat combo-return"><div class="l">£10 returns</div><div class="v">£24.38</div></div>
       </div>
       <div class="acca-warning">Notice how much the combined chance drops for one extra leg. All 3 legs must win — one loss voids the entire acca.</div>
     </div>
     <div class="acca">
       <div class="acca-top"><span class="acca-name">5-Fold reach</span><span class="risk-tag risk-high">Long shot</span></div>
-      <ul class="acca-legs"><li><span class="leg-name">PSV Eindhoven (Eredivisie)</span><span class="leg-prob">88%</span></li><li><span class="leg-name">Paris Saint Germain (Ligue 1)</span><span class="leg-prob">87%</span></li><li><span class="leg-name">Como (Serie A)</span><span class="leg-prob">80%</span></li><li><span class="leg-name">Inter Milan (Serie A)</span><span class="leg-prob">78%</span></li><li><span class="leg-name">Vancouver Whitecaps FC (MLS)</span><span class="leg-prob">76%</span></li></ul>
+      <ul class="acca-legs"><li><span class="leg-name">Como (Serie A)</span><span class="leg-prob">80%</span></li><li><span class="leg-name">Inter Milan (Serie A)</span><span class="leg-prob">78%</span></li><li><span class="leg-name">Braga (Primeira Liga)</span><span class="leg-prob">67%</span></li><li><span class="leg-name">Fenerbahce (Süper Lig)</span><span class="leg-prob">62%</span></li><li><span class="leg-name">AS Roma (Serie A)</span><span class="leg-prob">62%</span></li></ul>
       <div class="acca-stats">
-        <div class="acca-stat combo-prob"><div class="l">Combined chance</div><div class="v">36%</div></div>
-        <div class="acca-stat combo-odds"><div class="l">Combined odds</div><div class="v">2.82</div></div>
-        <div class="acca-stat combo-return"><div class="l">£10 returns</div><div class="v">£28.16</div></div>
+        <div class="acca-stat combo-prob"><div class="l">Combined chance</div><div class="v">16%</div></div>
+        <div class="acca-stat combo-odds"><div class="l">Combined odds</div><div class="v">6.28</div></div>
+        <div class="acca-stat combo-return"><div class="l">£10 returns</div><div class="v">£62.81</div></div>
       </div>
       <div class="acca-warning">A genuinely minority-chance outcome — small stake only, if at all. All 5 legs must win — one loss voids the entire acca.</div>
+    </div>
     </div>
   
   <footer>Published automatically by a scheduled scan · not financial advice · bet responsibly</footer>
