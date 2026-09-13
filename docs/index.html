@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="BK'sBets">
 <title>BK'sBets — Auto-updated</title>
 <style>
-:root{--pitch-dark:#0d1f14;--pitch:#12291a;--pitch-light:#1c3d26;--line:#2c5236;--chalk:#f2f5f0;--chalk-dim:#b9c7bc;--flood:#d8ff5e;--amber:#ffb648;--red-card:#e0554a;--font-head:'Oswald','Arial Narrow',sans-serif;--font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+:root{--pitch-dark:#0a0a0a;--pitch:#141414;--pitch-light:#1f1f1f;--line:#3a3a3a;--chalk:#f5f5f5;--chalk-dim:#9a9a9a;--flood:#ffffff;--amber:#c9c9c9;--red-card:#7a7a7a;--font-head:'Oswald','Arial Narrow',sans-serif;--font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;background:var(--pitch-dark);color:var(--chalk);font-family:var(--font-body);}
 body{min-height:100vh;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);background-image:repeating-linear-gradient(90deg,rgba(255,255,255,0.02) 0px,rgba(255,255,255,0.02) 1px,transparent 1px,transparent 64px),radial-gradient(circle at 50% -10%,var(--pitch-light),var(--pitch-dark) 65%);}
@@ -21,7 +21,7 @@ header{display:flex;align-items:flex-end;justify-content:space-between;margin-bo
 h1{font-family:var(--font-head);font-weight:600;font-size:26px;letter-spacing:0.3px;margin:0;text-transform:uppercase;}
 .sub{color:var(--chalk-dim);font-size:13px;margin-top:2px;}
 .generated{font-size:11px;color:var(--flood);text-align:right;text-transform:uppercase;letter-spacing:0.5px;}
-.disclaimer{background:rgba(224,85,74,0.08);border:1px solid rgba(224,85,74,0.35);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.5;color:var(--chalk-dim);margin:18px 0 26px;}
+.disclaimer{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.5;color:var(--chalk-dim);margin:18px 0 26px;}
 .disclaimer strong{color:var(--chalk);}
 .section-label{font-family:var(--font-head);text-transform:uppercase;font-size:13px;letter-spacing:2px;color:var(--chalk-dim);margin:34px 0 14px;display:flex;align-items:center;gap:10px;}
 .section-label::after{content:"";flex:1;height:1px;background:var(--line);}
@@ -52,9 +52,9 @@ h1{font-family:var(--font-head);font-weight:600;font-size:26px;letter-spacing:0.
 .acca-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
 .acca-name{font-family:var(--font-head);font-size:16px;text-transform:uppercase;letter-spacing:0.5px;}
 .risk-tag{font-size:10.5px;text-transform:uppercase;letter-spacing:1px;padding:3px 9px;border-radius:20px;font-family:var(--font-head);}
-.risk-low{background:rgba(216,255,94,0.15);color:var(--flood);}
-.risk-med{background:rgba(255,182,72,0.15);color:var(--amber);}
-.risk-high{background:rgba(224,85,74,0.15);color:var(--red-card);}
+.risk-low{background:rgba(255,255,255,0.12);color:var(--chalk);}
+.risk-med{background:rgba(255,255,255,0.07);color:var(--chalk-dim);}
+.risk-high{background:var(--chalk);color:var(--pitch-dark);}
 .acca-legs{list-style:none;padding:0;margin:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
 .acca-legs li{padding:8px 0;font-size:13px;display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.04);}
 .acca-legs li:last-child{border-bottom:none;}
@@ -66,7 +66,7 @@ h1{font-family:var(--font-head);font-weight:600;font-size:26px;letter-spacing:0.
 .acca-stat.combo-odds .v{color:var(--flood);}
 .acca-stat.combo-return .v{color:var(--chalk);font-size:15px;}
 .acca-warning{font-size:11.5px;color:var(--chalk-dim);margin-top:12px;line-height:1.5;border-top:1px dashed var(--line);padding-top:10px;}
-.acca-math{background:rgba(255,182,72,0.06);border:1px solid rgba(255,182,72,0.25);border-radius:12px;padding:14px 16px;font-size:12.5px;line-height:1.6;color:var(--chalk-dim);margin-bottom:20px;}
+.acca-math{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:14px 16px;font-size:12.5px;line-height:1.6;color:var(--chalk-dim);margin-bottom:20px;}
 .note-line{font-size:11.5px;color:var(--chalk-dim);margin-top:30px;line-height:1.6;}
 footer{margin-top:34px;text-align:center;font-size:11.5px;color:var(--chalk-dim);line-height:1.7;}
 </style>
@@ -79,7 +79,7 @@ footer{margin-top:34px;text-align:center;font-size:11.5px;color:var(--chalk-dim)
       <h1>BK'sBets</h1>
       <div class="sub">Auto-updated · no app needed</div>
     </div>
-    <div class="generated">Updated<br>Sun 13 Sep, 19:38 UTC</div>
+    <div class="generated">Updated<br>Sun 13 Sep, 19:43 UTC</div>
   </header>
   <div class="disclaimer"><strong>No pick here is a sure thing.</strong> These come straight from live bookmaker odds, converted to probability. Odds move — check the live price before backing anything, and stake only what you're fine losing.</div>
   
@@ -121,7 +121,7 @@ footer{margin-top:34px;text-align:center;font-size:11.5px;color:var(--chalk-dim)
           <div class="conf-bar"><div class="conf-fill" style="width:87%"></div></div>
         </div>
       </div>
-      <div class="why">Best available price 1.14 implies roughly <b>87%</b> after removing the bookmaker's margin.</div>
+      <div class="why">Best available price 1.15 implies roughly <b>87%</b> after removing the bookmaker's margin.</div>
     </div>
     <div class="match high">
       <div class="match-top">
@@ -154,10 +154,10 @@ footer{margin-top:34px;text-align:center;font-size:11.5px;color:var(--chalk-dim)
         </div>
         <div class="conf">
           <div class="pick-label">Implied prob.</div>
-          <div class="conf-bar"><div class="conf-fill" style="width:62%"></div></div>
+          <div class="conf-bar"><div class="conf-fill" style="width:65%"></div></div>
         </div>
       </div>
-      <div class="why">Best available price 1.62 implies roughly <b>62%</b> after removing the bookmaker's margin.</div>
+      <div class="why">Best available price 1.59 implies roughly <b>65%</b> after removing the bookmaker's margin.</div>
     </div>
       <div class="section-label">Both teams to score</div><div class="empty">No high-confidence BTTS candidates for today, or this market wasn't available from the data source for these fixtures.</div>
       
@@ -169,8 +169,8 @@ footer{margin-top:34px;text-align:center;font-size:11.5px;color:var(--chalk-dim)
       <ul class="acca-legs"><li><span class="leg-name">PSV Eindhoven (Eredivisie)</span><span class="leg-prob">99%</span></li><li><span class="leg-name">Paris Saint Germain (Ligue 1)</span><span class="leg-prob">87%</span></li></ul>
       <div class="acca-stats">
         <div class="acca-stat combo-prob"><div class="l">Combined chance</div><div class="v">86%</div></div>
-        <div class="acca-stat combo-odds"><div class="l">Combined odds</div><div class="v">1.25</div></div>
-        <div class="acca-stat combo-return"><div class="l">£10 returns</div><div class="v">£12.54</div></div>
+        <div class="acca-stat combo-odds"><div class="l">Combined odds</div><div class="v">1.26</div></div>
+        <div class="acca-stat combo-return"><div class="l">£10 returns</div><div class="v">£12.65</div></div>
       </div>
       <div class="acca-warning">The steadiest combo on today's board — still not a sure thing. All 2 legs must win — one loss voids the entire acca.</div>
     </div>
@@ -178,9 +178,9 @@ footer{margin-top:34px;text-align:center;font-size:11.5px;color:var(--chalk-dim)
       <div class="acca-top"><span class="acca-name">Treble</span><span class="risk-tag risk-med">Higher risk</span></div>
       <ul class="acca-legs"><li><span class="leg-name">PSV Eindhoven (Eredivisie)</span><span class="leg-prob">99%</span></li><li><span class="leg-name">Paris Saint Germain (Ligue 1)</span><span class="leg-prob">87%</span></li><li><span class="leg-name">Vancouver Whitecaps FC (MLS)</span><span class="leg-prob">76%</span></li></ul>
       <div class="acca-stats">
-        <div class="acca-stat combo-prob"><div class="l">Combined chance</div><div class="v">65%</div></div>
-        <div class="acca-stat combo-odds"><div class="l">Combined odds</div><div class="v">1.64</div></div>
-        <div class="acca-stat combo-return"><div class="l">£10 returns</div><div class="v">£16.43</div></div>
+        <div class="acca-stat combo-prob"><div class="l">Combined chance</div><div class="v">66%</div></div>
+        <div class="acca-stat combo-odds"><div class="l">Combined odds</div><div class="v">1.66</div></div>
+        <div class="acca-stat combo-return"><div class="l">£10 returns</div><div class="v">£16.57</div></div>
       </div>
       <div class="acca-warning">Notice how much the combined chance drops for one extra leg. All 3 legs must win — one loss voids the entire acca.</div>
     </div>
@@ -260,7 +260,7 @@ footer{margin-top:34px;text-align:center;font-size:11.5px;color:var(--chalk-dim)
           <div class="conf-bar"><div class="conf-fill" style="width:62%"></div></div>
         </div>
       </div>
-      <div class="why">Best available price 1.60 implies roughly <b>62%</b> after removing the bookmaker's margin.</div>
+      <div class="why">Best available price 1.61 implies roughly <b>62%</b> after removing the bookmaker's margin.</div>
     </div>
     <div class="match med">
       <div class="match-top">
@@ -310,8 +310,8 @@ footer{margin-top:34px;text-align:center;font-size:11.5px;color:var(--chalk-dim)
       <ul class="acca-legs"><li><span class="leg-name">Como (Serie A)</span><span class="leg-prob">80%</span></li><li><span class="leg-name">Inter Milan (Serie A)</span><span class="leg-prob">78%</span></li><li><span class="leg-name">Braga (Primeira Liga)</span><span class="leg-prob">67%</span></li><li><span class="leg-name">Fenerbahce (Süper Lig)</span><span class="leg-prob">62%</span></li><li><span class="leg-name">AS Roma (Serie A)</span><span class="leg-prob">62%</span></li></ul>
       <div class="acca-stats">
         <div class="acca-stat combo-prob"><div class="l">Combined chance</div><div class="v">16%</div></div>
-        <div class="acca-stat combo-odds"><div class="l">Combined odds</div><div class="v">6.28</div></div>
-        <div class="acca-stat combo-return"><div class="l">£10 returns</div><div class="v">£62.81</div></div>
+        <div class="acca-stat combo-odds"><div class="l">Combined odds</div><div class="v">6.32</div></div>
+        <div class="acca-stat combo-return"><div class="l">£10 returns</div><div class="v">£63.20</div></div>
       </div>
       <div class="acca-warning">A genuinely minority-chance outcome — small stake only, if at all. All 5 legs must win — one loss voids the entire acca.</div>
     </div>
