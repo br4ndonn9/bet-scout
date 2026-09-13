@@ -437,7 +437,7 @@ footer{margin-top:32px;text-align:center;font-size:11px;color:var(--chalk-dim);l
             '<div class="conf-bar"><div class="conf-fill" style="width:' + pct + '%"></div></div>' +
           '</div>' +
         '</div>' +
-        '<div class="why">Best available price ' + p.odds_used.toFixed(2) + ' implies roughly <b>' + pct + '%</b> after removing the bookmaker\'s margin.</div>' +
+        '<div class="why">Best available price ' + p.odds_used.toFixed(2) + ' implies roughly <b>' + pct + '%</b> after removing the bookmaker margin.</div>' +
       '</div>';
   }
   function buildAccas(winPicks){
