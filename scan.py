@@ -52,13 +52,21 @@ def fetch(sport_key, markets):
         return []
 
 
-def within_window(commence_iso, hours_back=3, hours_fwd=30):
+def day_bucket(commence_iso):
+    """Classifies a kickoff time as 'today', 'tomorrow', or None (too old / too far out).
+    Uses UTC calendar days — close enough for a personal UK tool."""
     try:
         t = datetime.datetime.fromisoformat(commence_iso.replace("Z", "+00:00"))
     except ValueError:
-        return False
+        return None
     now = datetime.datetime.now(datetime.timezone.utc)
-    return (now - datetime.timedelta(hours=hours_back)) < t < (now + datetime.timedelta(hours=hours_fwd))
+    if t < now - datetime.timedelta(hours=3):
+        return None
+    if t.date() == now.date():
+        return "today"
+    if t.date() == (now.date() + datetime.timedelta(days=1)):
+        return "tomorrow"
+    return None
 
 
 def best_price(bookmakers, market_key, outcome_name):
@@ -85,8 +93,10 @@ def normalize(*odds):
 
 
 def scan():
-    win_picks = []
-    btts_picks = []
+    picks = {
+        "today": {"win": [], "btts": []},
+        "tomorrow": {"win": [], "btts": []},
+    }
     league_errors = []
 
     for sport_key, league_name in LEAGUES:
@@ -102,7 +112,8 @@ def scan():
         btts_by_id = {e["id"]: e for e in btts_events} if btts_events else {}
 
         for ev in events:
-            if not within_window(ev.get("commence_time", "")):
+            bucket = day_bucket(ev.get("commence_time", ""))
+            if bucket is None:
                 continue
             home, away = ev.get("home_team"), ev.get("away_team")
             odds_home = best_price(ev.get("bookmakers"), "h2h", home)
@@ -111,7 +122,7 @@ def scan():
             if odds_home and odds_away:
                 p_home, p_away, p_draw = normalize(odds_home, odds_away, odds_draw)
                 fav_is_home = p_home >= p_away
-                win_picks.append({
+                picks[bucket]["win"].append({
                     "league": league_name,
                     "home": home, "away": away,
                     "kickoff": ev.get("commence_time"),
@@ -127,7 +138,7 @@ def scan():
                 if odds_yes and odds_no:
                     p_yes, p_no = normalize(odds_yes, odds_no)
                     if p_yes >= 0.55:
-                        btts_picks.append({
+                        picks[bucket]["btts"].append({
                             "league": league_name,
                             "home": home, "away": away,
                             "kickoff": ev.get("commence_time"),
@@ -135,9 +146,11 @@ def scan():
                             "odds_used": odds_yes,
                         })
 
-    win_picks.sort(key=lambda p: p["fav_prob"], reverse=True)
-    btts_picks.sort(key=lambda p: p["prob"], reverse=True)
-    return win_picks, btts_picks, league_errors
+    for bucket in picks.values():
+        bucket["win"].sort(key=lambda p: p["fav_prob"], reverse=True)
+        bucket["btts"].sort(key=lambda p: p["prob"], reverse=True)
+
+    return picks, league_errors
 
 
 def build_accas(win_picks):
@@ -222,10 +235,7 @@ def acca_card(c):
     </div>"""
 
 
-def render(win_picks, btts_picks, league_errors):
-    now = datetime.datetime.now(datetime.timezone.utc)
-    generated = now.strftime("%a %d %b, %H:%M UTC")
-
+def render_day_block(day_label, win_picks, btts_picks):
     win_high = [p for p in win_picks if p["fav_prob"] >= 0.70][:6]
     win_med = [p for p in win_picks if 0.55 <= p["fav_prob"] < 0.70][:4]
     btts_high = [p for p in btts_picks if p["prob"] >= 0.65][:6]
@@ -233,14 +243,13 @@ def render(win_picks, btts_picks, league_errors):
 
     win_html = "".join(match_card(p, "high") for p in win_high) + "".join(match_card(p, "med") for p in win_med)
     if not win_html:
-        win_html = '<div class="empty">No standout favourites right now — check back closer to kickoff.</div>'
+        win_html = f'<div class="empty">No standout favourites for {day_label.lower()} right now — check back later.</div>'
 
     btts_html = "".join(match_card(p, "high" if p["prob"] >= 0.75 else "med", "— both teams to score") for p in btts_high)
-    btts_section = ""
     if btts_html:
         btts_section = f'<div class="section-label">Both teams to score</div>{btts_html}'
     else:
-        btts_section = '<div class="section-label">Both teams to score</div><div class="empty">No high-confidence BTTS candidates today, or this market wasn\'t available from the data source for today\'s fixtures.</div>'
+        btts_section = f'<div class="section-label">Both teams to score</div><div class="empty">No high-confidence BTTS candidates for {day_label.lower()}, or this market wasn\'t available from the data source for these fixtures.</div>'
 
     acca_html = "".join(acca_card(c) for c in accas)
     acca_section = ""
@@ -250,15 +259,31 @@ def render(win_picks, btts_picks, league_errors):
         <div class="acca-math"><b>Read this first:</b> every leg has to win, or the whole bet returns nothing. Three legs at 80% each is only about a 51% chance combined, not 80%.</div>
         {acca_html}"""
 
+    return f"""
+    <div class="day-block">
+      <div class="day-heading">{day_label}</div>
+      <div class="section-label">Win market</div>
+      {win_html}
+      {btts_section}
+      {acca_section}
+    </div>"""
+
+
+def render(picks, league_errors):
+    now = datetime.datetime.now(datetime.timezone.utc)
+    generated = now.strftime("%a %d %b, %H:%M UTC")
+
+    today_html = render_day_block("Today", picks["today"]["win"], picks["today"]["btts"])
+    tomorrow_html = render_day_block("Tomorrow", picks["tomorrow"]["win"], picks["tomorrow"]["btts"])
+
     errors_note = ""
     if league_errors:
         errors_note = f'<div class="note-line">Couldn\'t reach data for: {", ".join(league_errors)} this run — will retry automatically next scan.</div>'
 
     return HTML_TEMPLATE.format(
         generated=generated,
-        win_html=win_html,
-        btts_section=btts_section,
-        acca_section=acca_section,
+        today_html=today_html,
+        tomorrow_html=tomorrow_html,
         errors_note=errors_note,
     )
 
@@ -270,8 +295,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Bet Scout">
-<title>Bet Scout — Auto-updated</title>
+<meta name="apple-mobile-web-app-title" content="BK'sBets">
+<title>BK'sBets — Auto-updated</title>
 <style>
 :root{{--pitch-dark:#0d1f14;--pitch:#12291a;--pitch-light:#1c3d26;--line:#2c5236;--chalk:#f2f5f0;--chalk-dim:#b9c7bc;--flood:#d8ff5e;--amber:#ffb648;--red-card:#e0554a;--font-head:'Oswald','Arial Narrow',sans-serif;--font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}}
 *{{box-sizing:border-box;}}
@@ -290,6 +315,9 @@ h1{{font-family:var(--font-head);font-weight:600;font-size:26px;letter-spacing:0
 .disclaimer strong{{color:var(--chalk);}}
 .section-label{{font-family:var(--font-head);text-transform:uppercase;font-size:13px;letter-spacing:2px;color:var(--chalk-dim);margin:34px 0 14px;display:flex;align-items:center;gap:10px;}}
 .section-label::after{{content:"";flex:1;height:1px;background:var(--line);}}
+.day-block{{margin-top:36px;padding-top:26px;border-top:2px solid var(--line);}}
+.day-block:first-of-type{{margin-top:0;padding-top:0;border-top:none;}}
+.day-heading{{font-family:var(--font-head);font-weight:600;font-size:22px;text-transform:uppercase;letter-spacing:1px;color:var(--flood);}}
 .match{{background:linear-gradient(180deg,var(--pitch-light),var(--pitch));border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;position:relative;overflow:hidden;}}
 .match::before{{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;}}
 .match.high::before{{background:var(--flood);}}
@@ -338,16 +366,14 @@ footer{{margin-top:34px;text-align:center;font-size:11.5px;color:var(--chalk-dim
   <header>
     <div>
       <div class="kick"></div>
-      <h1>Bet Scout</h1>
+      <h1>BK'sBets</h1>
       <div class="sub">Auto-updated · no app needed</div>
     </div>
     <div class="generated">Updated<br>{generated}</div>
   </header>
   <div class="disclaimer"><strong>No pick here is a sure thing.</strong> These come straight from live bookmaker odds, converted to probability. Odds move — check the live price before backing anything, and stake only what you're fine losing.</div>
-  <div class="section-label">Win market</div>
-  {win_html}
-  {btts_section}
-  {acca_section}
+  {today_html}
+  {tomorrow_html}
   {errors_note}
   <footer>Published automatically by a scheduled scan · not financial advice · bet responsibly</footer>
 </div>
@@ -362,8 +388,8 @@ def main():
         with open("docs/index.html", "w") as f:
             f.write("<h1>ODDS_API_KEY secret not set.</h1><p>Add it in repo Settings &gt; Secrets and variables &gt; Actions.</p>")
         return
-    win_picks, btts_picks, errors = scan()
-    html = render(win_picks, btts_picks, errors)
+    picks, errors = scan()
+    html = render(picks, errors)
     with open("docs/index.html", "w") as f:
         f.write(html)
 
