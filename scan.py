@@ -32,6 +32,7 @@ BASE = "https://api.the-odds-api.com/v4/sports/{sport}/odds/"
 ESPN_SLUGS = ["eng.1", "eng.2", "esp.1", "ita.1", "ger.1", "fra.1", "ned.1", "por.1",
               "tur.1", "usa.1", "uefa.champions", "uefa.europa", "uefa.europa.conf"]
 ESPN_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/{slug}/scoreboard"
+ALIASES = {"slavia praha": "slavia prague"}
 DROP = {"fc", "cf", "afc", "sc", "ac", "ssc", "cd", "ud", "rc", "sv", "fk", "bk", "calcio"}
 
 
@@ -82,11 +83,26 @@ def load_form():
 def team_form(name, names, games):
     """Returns (both_scored_count, games_counted) over last 5, or None."""
     n = norm(name)
+    n = ALIASES.get(n, n)
     tid = names.get(n)
     if tid is None:
         close = difflib.get_close_matches(n, list(names), n=1, cutoff=0.86)
         if close:
             tid = names[close[0]]
+    if tid is None:
+        # Word-overlap fallback: "kasimpasa sk" matches "kasimpasa".
+        mine = set(n.split())
+        best, best_ids = 0, set()
+        for key, kid in names.items():
+            theirs = set(key.split())
+            if theirs <= mine or mine <= theirs:
+                score = len(mine & theirs)
+                if score > best:
+                    best, best_ids = score, {kid}
+                elif score == best and score > 0:
+                    best_ids.add(kid)
+        if len(best_ids) == 1:
+            tid = next(iter(best_ids))
     if tid is None or tid not in games:
         return None
     last = games[tid][:5]
