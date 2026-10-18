@@ -1,7 +1,10 @@
 """BK's Bets - daily odds scan. Writes docs/index.html (served by GitHub Pages)."""
 
 import os
+import re
 import json
+import difflib
+import unicodedata
 import datetime
 import requests
 
@@ -24,6 +27,72 @@ LEAGUES = [
 ]
 
 BASE = "https://api.the-odds-api.com/v4/sports/{sport}/odds/"
+
+# Free public results feed (no key) used for each team's last-5 form.
+ESPN_SLUGS = ["eng.1", "eng.2", "esp.1", "ita.1", "ger.1", "fra.1", "ned.1", "por.1",
+              "tur.1", "usa.1", "uefa.champions", "uefa.europa", "uefa.europa.conf"]
+ESPN_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/{slug}/scoreboard"
+DROP = {"fc", "cf", "afc", "sc", "ac", "ssc", "cd", "ud", "rc", "sv", "fk", "bk", "calcio"}
+
+
+def norm(name):
+    s = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode().lower()
+    s = s.replace("&", " and ")
+    s = re.sub(r"[^a-z0-9 ]+", " ", s)
+    return " ".join(t for t in s.split() if t not in DROP)
+
+
+def load_form():
+    """Returns (names, games): names maps normalised name -> team id,
+    games maps team id -> list of (date, both_teams_scored), newest first."""
+    names, games = {}, {}
+    now = datetime.datetime.now(datetime.timezone.utc)
+    seen = set()
+    for slug in ESPN_SLUGS:
+        try:
+            r = requests.get(ESPN_URL.format(slug=slug),
+                             params={"dates": str(now.year), "limit": 1000}, timeout=30)
+            events = r.json().get("events", []) if r.status_code == 200 else []
+        except (requests.RequestException, ValueError):
+            events = []
+        for ev in events:
+            try:
+                comp = ev["competitions"][0]
+                if not ev["status"]["type"]["completed"]:
+                    continue
+                if ev["id"] in seen:
+                    continue
+                seen.add(ev["id"])
+                cs = comp["competitors"]
+                scores = [int(c["score"]) for c in cs]
+                btts = all(x > 0 for x in scores)
+                for c in cs:
+                    t = c["team"]
+                    for key in (t.get("displayName"), t.get("shortDisplayName")):
+                        if key:
+                            names[norm(key)] = t["id"]
+                    games.setdefault(t["id"], []).append((ev["date"], btts))
+            except (KeyError, ValueError, IndexError, TypeError):
+                continue
+    for tid in games:
+        games[tid].sort(reverse=True)
+    return names, games
+
+
+def team_form(name, names, games):
+    """Returns (both_scored_count, games_counted) over last 5, or None."""
+    n = norm(name)
+    tid = names.get(n)
+    if tid is None:
+        close = difflib.get_close_matches(n, list(names), n=1, cutoff=0.86)
+        if close:
+            tid = names[close[0]]
+    if tid is None or tid not in games:
+        return None
+    last = games[tid][:5]
+    if len(last) < 5:
+        return None
+    return sum(1 for _, b in last if b), len(last)
 
 
 def fetch(sport_key):
@@ -74,6 +143,10 @@ def scan():
     now = datetime.datetime.now(datetime.timezone.utc)
     limit = now + datetime.timedelta(hours=60)
     fixtures, errors = [], []
+    try:
+        names, games = load_form()
+    except Exception:
+        names, games = {}, {}
     for key, name in LEAGUES:
         events, err = fetch(key)
         if err:
@@ -90,8 +163,13 @@ def scan():
             if not res:
                 continue
             p, o = res
-            fixtures.append({"lg": name, "h": ev["home_team"], "a": ev["away_team"],
-                             "t": ev["commence_time"], "p": p, "o": o})
+            fh = team_form(ev["home_team"], names, games)
+            fa = team_form(ev["away_team"], names, games)
+            fx = {"lg": name, "h": ev["home_team"], "a": ev["away_team"],
+                  "t": ev["commence_time"], "p": p, "o": o}
+            if fh and fa:
+                fx["b"] = {"h": fh[0], "a": fa[0]}
+            fixtures.append(fx)
     fixtures.sort(key=lambda f: f["t"])
     return fixtures, errors
 
@@ -178,14 +256,23 @@ function pick(f){
   var p=f.p, best='h', team=f.h;
   if(p.a>p[best]){best='a';team=f.a;}
   var o=f.o&&f.o[best]?f.o[best]:Math.round(100/p[best])/100;
-  return {team:team, prob:p[best], odds:o};
+  var r={team:team+' to win', prob:p[best], odds:o, btts:false, form:''};
+  var b=f.b;
+  if(b){
+    r.form=f.h+' '+b.h+'/5, '+f.a+' '+b.a+'/5 both scored';
+    if(b.h>=3&&b.a>=3){
+      var bp=(b.h+b.a)/10;
+      if(bp>p[best]){r.team='Both teams to score';r.prob=bp;r.odds=null;r.btts=true;}
+    }
+  }
+  return r;
 }
 function list(day){
   var rows=FX.filter(function(f){return bucket(f.t)===day;});
   if(!rows.length)return '<div class="empty">No games found.</div>';
   return rows.map(function(f){
     var k=pick(f);
-    return '<div class="fx'+(started(f)?' off':'')+'"><span>'+esc(f.h)+' v '+esc(f.a)+'<br><small style="color:#8f8f94">'+esc(f.lg)+' &middot; '+tm(f.t)+'</small></span><span class="pct">'+esc(k.team)+' '+k.odds.toFixed(2)+'</span></div>';
+    return '<div class="fx'+(started(f)?' off':'')+'"><span>'+esc(f.h)+' v '+esc(f.a)+'<br><small style="color:#8f8f94">'+esc(f.lg)+' &middot; '+tm(f.t)+'</small></span><span class="pct">'+esc(k.team.replace(' to win',''))+(k.btts?'':' '+k.odds.toFixed(2))+'</span></div>';
   }).join('');
 }
 el('today').innerHTML=list('today');
@@ -198,7 +285,7 @@ function build(shuffle){
     if(started(f))return false;
     var b=bucket(f.t);
     return scope==='all'?!!b:b===scope;
-  }).map(function(f){var k=pick(f);return {f:f,team:k.team,prob:k.prob,odds:k.odds};});
+  }).map(function(f){var k=pick(f);return {f:f,team:k.team,prob:k.prob,odds:k.odds,btts:k.btts,form:k.form};});
   pool.sort(function(a,b){return b.prob-a.prob;});
   var res=el('result');
   if(pool.length<n){
@@ -212,10 +299,11 @@ function build(shuffle){
     legs=wide.slice(0,n);
   } else legs=pool.slice(0,n);
   legs.sort(function(a,b){return new Date(a.f.t)-new Date(b.f.t);});
-  var total=legs.reduce(function(a,l){return a*l.odds;},1);
+  var hasB=legs.some(function(l){return l.btts;});
+  var total=legs.reduce(function(a,l){return l.btts?a:a*l.odds;},1);
   var html='<div class="panel bet"><h2>'+n+'-fold</h2>'+legs.map(function(l){
-    return '<div class="leg"><span><b>'+esc(l.team)+' to win</b><small>'+esc(l.f.h)+' v '+esc(l.f.a)+' &middot; '+esc(l.f.lg)+' &middot; '+tm(l.f.t)+'</small></span><span class="pct">'+l.odds.toFixed(2)+'</span></div>';
-  }).join('')+'<div class="sum"><span>Total odds</span><span>'+total.toFixed(2)+'</span></div><div class="stake"><span>Stake &pound;</span><input id="stake" type="number" inputmode="decimal" value="10" min="0"><span class="ret" id="ret"></span></div><div class="note">Odds are a guide and can differ on Bet365. Built from games that have not kicked off. Every leg must win.</div></div>';
+    return '<div class="leg"><span><b>'+esc(l.team)+'</b><small>'+esc(l.f.h)+' v '+esc(l.f.a)+' &middot; '+esc(l.f.lg)+' &middot; '+tm(l.f.t)+(l.btts?'<br>'+esc(l.form):'')+'</small></span><span class="pct">'+(l.btts?'check odds':l.odds.toFixed(2))+'</span></div>';
+  }).join('')+'<div class="sum"><span>Total odds'+(hasB?' (without both-teams legs)':'')+'</span><span>'+total.toFixed(2)+'</span></div><div class="stake"><span>Stake &pound;</span><input id="stake" type="number" inputmode="decimal" value="10" min="0"><span class="ret" id="ret"></span></div><div class="note">Odds are a guide and can differ on Bet365. Built from games that have not kicked off. Every leg must win.</div></div>';
   res.innerHTML=html;
   var upd=function(){var v=parseFloat(el('stake').value)||0;el('ret').textContent='Returns £'+(v*total).toFixed(2);};
   el('stake').oninput=upd;upd();
