@@ -173,7 +173,7 @@ def scan():
                 t = datetime.datetime.fromisoformat(ev["commence_time"].replace("Z", "+00:00"))
             except (KeyError, ValueError):
                 continue
-            if t < now - datetime.timedelta(hours=3) or t > limit:
+            if t <= now or t > limit:
                 continue
             res = consensus(ev)
             if not res:
@@ -272,19 +272,20 @@ function pick(f){
   var p=f.p, best='h', team=f.h;
   if(p.a>p[best]){best='a';team=f.a;}
   var o=f.o&&f.o[best]?f.o[best]:Math.round(100/p[best])/100;
-  var r={team:team+' to win', prob:p[best], odds:o, btts:false, form:''};
+  var r={team:team+' to win', prob:p[best], odds:o, btts:false, form:'', score:p[best]*Math.sqrt(o)};
   var b=f.b;
   if(b){
     r.form=f.h+' '+b.h+'/5, '+f.a+' '+b.a+'/5 both scored';
     if(b.h>=3&&b.a>=3){
       var bp=(b.h+b.a)/10;
-      if(bp>p[best]){r.team='Both teams to score';r.prob=bp;r.odds=null;r.btts=true;}
+      if(bp>p[best]){r.team='Both teams to score';r.prob=bp;r.odds=null;r.btts=true;r.score=bp;}
     }
   }
   return r;
 }
 function list(day){
-  var rows=FX.filter(function(f){return bucket(f.t)===day;});
+  var rows=FX.filter(function(f){return bucket(f.t)===day;}).sort(function(a,b){
+    var sa=started(a)?-1:pick(a).score, sb=started(b)?-1:pick(b).score; return sb-sa;});
   if(!rows.length)return '<div class="empty">No games found.</div>';
   return rows.map(function(f){
     var k=pick(f);
@@ -301,8 +302,10 @@ function build(shuffle){
     if(started(f))return false;
     var b=bucket(f.t);
     return scope==='all'?!!b:b===scope;
-  }).map(function(f){var k=pick(f);return {f:f,team:k.team,prob:k.prob,odds:k.odds,btts:k.btts,form:k.form};});
-  pool.sort(function(a,b){return b.prob-a.prob;});
+  }).map(function(f){var k=pick(f);return {f:f,team:k.team,prob:k.prob,odds:k.odds,btts:k.btts,form:k.form,score:k.score};});
+  var good=pool.filter(function(l){return l.btts||l.odds>=1.15;});
+  if(good.length>=n)pool=good;
+  pool.sort(function(a,b){return b.score-a.score;});
   var res=el('result');
   if(pool.length<n){
     res.innerHTML='<div class="panel">Only '+pool.length+' game'+(pool.length===1?'':'s')+' left to bet on. Pick a smaller bet size'+(scope!=='all'?' or choose Today + Tomorrow':'')+'.</div>';
@@ -314,7 +317,7 @@ function build(shuffle){
     for(var i=wide.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=wide[i];wide[i]=wide[j];wide[j]=t;}
     legs=wide.slice(0,n);
   } else legs=pool.slice(0,n);
-  legs.sort(function(a,b){return new Date(a.f.t)-new Date(b.f.t);});
+  legs.sort(function(a,b){return b.score-a.score;});
   var hasB=legs.some(function(l){return l.btts;});
   var total=legs.reduce(function(a,l){return l.btts?a:a*l.odds;},1);
   var html='<div class="panel bet"><h2>'+n+'-fold</h2>'+legs.map(function(l){
