@@ -46,6 +46,8 @@ def consensus(event):
     """Average of bookmaker-margin-free probabilities. Returns dict or None."""
     home, away = event.get("home_team"), event.get("away_team")
     sums = {"h": 0.0, "d": 0.0, "a": 0.0}
+    best = {"h": 0.0, "a": 0.0}
+    b365 = {}
     n = 0
     for bm in event.get("bookmakers", []):
         for m in bm.get("markets", []):
@@ -53,6 +55,10 @@ def consensus(event):
                 continue
             px = {o["name"]: o["price"] for o in m.get("outcomes", [])}
             if home in px and away in px and "Draw" in px:
+                best["h"] = max(best["h"], px[home])
+                best["a"] = max(best["a"], px[away])
+                if bm.get("key") == "bet365":
+                    b365 = {"h": px[home], "a": px[away]}
                 inv = {"h": 1 / px[home], "d": 1 / px["Draw"], "a": 1 / px[away]}
                 tot = sum(inv.values())
                 for k in sums:
@@ -60,7 +66,8 @@ def consensus(event):
                 n += 1
     if n == 0:
         return None
-    return {k: round(v / n, 4) for k, v in sums.items()}
+    odds = b365 if b365 else best
+    return {k: round(v / n, 4) for k, v in sums.items()}, odds
 
 
 def scan():
@@ -79,11 +86,12 @@ def scan():
                 continue
             if t < now - datetime.timedelta(hours=3) or t > limit:
                 continue
-            p = consensus(ev)
-            if not p:
+            res = consensus(ev)
+            if not res:
                 continue
+            p, o = res
             fixtures.append({"lg": name, "h": ev["home_team"], "a": ev["away_team"],
-                             "t": ev["commence_time"], "p": p})
+                             "t": ev["commence_time"], "p": p, "o": o})
     fixtures.sort(key=lambda f: f["t"])
     return fixtures, errors
 
@@ -117,6 +125,9 @@ button.ghost{background:transparent;color:var(--text);border:1px solid var(--lin
 .leg small{color:var(--dim)}
 .pct{font-weight:700;white-space:nowrap}
 .sum{display:flex;justify-content:space-between;padding-top:12px;border-top:1px solid var(--line);font-weight:700}
+.stake{display:flex;align-items:center;gap:8px;padding-top:12px}
+.stake input{width:90px;background:#0f0f0f;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:16px}
+.stake .ret{margin-left:auto;font-size:20px;font-weight:700}
 .note{color:var(--dim);font-size:12px;margin-top:8px}
 h3{margin:24px 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--dim)}
 .fx{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:15px}
@@ -166,14 +177,15 @@ function started(f){return new Date(f.t).getTime()<=Date.now();}
 function pick(f){
   var p=f.p, best='h', team=f.h;
   if(p.a>p[best]){best='a';team=f.a;}
-  return {team:team, prob:p[best]};
+  var o=f.o&&f.o[best]?f.o[best]:Math.round(100/p[best])/100;
+  return {team:team, prob:p[best], odds:o};
 }
 function list(day){
   var rows=FX.filter(function(f){return bucket(f.t)===day;});
   if(!rows.length)return '<div class="empty">No games found.</div>';
   return rows.map(function(f){
     var k=pick(f);
-    return '<div class="fx'+(started(f)?' off':'')+'"><span>'+esc(f.h)+' v '+esc(f.a)+'<br><small style="color:#8f8f94">'+esc(f.lg)+' &middot; '+tm(f.t)+'</small></span><span class="pct">'+esc(k.team)+' '+Math.round(k.prob*100)+'%</span></div>';
+    return '<div class="fx'+(started(f)?' off':'')+'"><span>'+esc(f.h)+' v '+esc(f.a)+'<br><small style="color:#8f8f94">'+esc(f.lg)+' &middot; '+tm(f.t)+'</small></span><span class="pct">'+esc(k.team)+' '+k.odds.toFixed(2)+'</span></div>';
   }).join('');
 }
 el('today').innerHTML=list('today');
@@ -186,7 +198,7 @@ function build(shuffle){
     if(started(f))return false;
     var b=bucket(f.t);
     return scope==='all'?!!b:b===scope;
-  }).map(function(f){var k=pick(f);return {f:f,team:k.team,prob:k.prob};});
+  }).map(function(f){var k=pick(f);return {f:f,team:k.team,prob:k.prob,odds:k.odds};});
   pool.sort(function(a,b){return b.prob-a.prob;});
   var res=el('result');
   if(pool.length<n){
@@ -200,11 +212,13 @@ function build(shuffle){
     legs=wide.slice(0,n);
   } else legs=pool.slice(0,n);
   legs.sort(function(a,b){return new Date(a.f.t)-new Date(b.f.t);});
-  var comb=legs.reduce(function(a,l){return a*l.prob;},1);
+  var total=legs.reduce(function(a,l){return a*l.odds;},1);
   var html='<div class="panel bet"><h2>'+n+'-fold</h2>'+legs.map(function(l){
-    return '<div class="leg"><span><b>'+esc(l.team)+' to win</b><small>'+esc(l.f.h)+' v '+esc(l.f.a)+' &middot; '+esc(l.f.lg)+' &middot; '+tm(l.f.t)+'</small></span><span class="pct">'+Math.round(l.prob*100)+'%</span></div>';
-  }).join('')+'<div class="sum"><span>Chance all '+n+' win</span><span>'+(comb>=0.1?Math.round(comb*100):(comb*100).toFixed(1))+'%</span></div><div class="note">Built from games that have not kicked off. Every leg must win.</div></div>';
+    return '<div class="leg"><span><b>'+esc(l.team)+' to win</b><small>'+esc(l.f.h)+' v '+esc(l.f.a)+' &middot; '+esc(l.f.lg)+' &middot; '+tm(l.f.t)+'</small></span><span class="pct">'+l.odds.toFixed(2)+'</span></div>';
+  }).join('')+'<div class="sum"><span>Total odds</span><span>'+total.toFixed(2)+'</span></div><div class="stake"><span>Stake &pound;</span><input id="stake" type="number" inputmode="decimal" value="10" min="0"><span class="ret" id="ret"></span></div><div class="note">Odds are a guide and can differ on Bet365. Built from games that have not kicked off. Every leg must win.</div></div>';
   res.innerHTML=html;
+  var upd=function(){var v=parseFloat(el('stake').value)||0;el('ret').textContent='Returns £'+(v*total).toFixed(2);};
+  el('stake').oninput=upd;upd();
   el('again').style.display='block';
 }
 el('build').onclick=function(){build(false);};
