@@ -346,7 +346,7 @@ footer{color:var(--dim);font-size:12px;text-align:center;margin-top:30px}
     <div><label>Bet size</label><select id="fold"></select></div>
     <div><label>Games</label><select id="scope"><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="all">Today + Tomorrow</option></select></div>
   </div>
-  <input type="hidden" id="book" value="avg">
+  <div style="margin-top:10px"><label>Both teams to score picks</label><select id="mix"><option value="auto">Normal</option><option value="more">More</option></select></div><input type="hidden" id="book" value="avg">
   <button id="build">Build bet</button>
   <button class="ghost" id="again" style="display:none">Build a different one</button>
 </div>
@@ -417,9 +417,10 @@ function pick(f){
   var b=f.b;
   if(b){
     r.form=f.h+' '+b.h+'/5, '+f.a+' '+b.a+'/5 both scored';
-    if(b.h+b.a>=6){
+    var more=el('mix').value==='more';
+    if(b.h+b.a>=(more?5:6)){
       var bp=f.x?f.x.bp:(b.h+b.a)/10;
-      if(bp>p[best]&&bp>=0.55){r.team='Both teams to score';r.prob=bp;r.odds=null;r.btts=true;r.score=bp*1.34;}
+      if(more?bp>=0.5:(bp>p[best]&&bp>=0.55)){r.team='Both teams to score';r.prob=bp;r.odds=null;r.btts=true;r.score=bp*(more?1.7:1.34);}
     }
   }
   return r;
@@ -472,6 +473,7 @@ function build(shuffle){
   el('again').style.display='block';
 }
 el('build').onclick=function(){build(false);};
+el('mix').onchange=function(){el('today').innerHTML=list('today');el('tomorrow').innerHTML=list('tomorrow');if(el('again').style.display==='block')build(false);};
 bsel.onchange=function(){
   try{localStorage.setItem('bkbook',bsel.value);}catch(e){}
   el('today').innerHTML=list('today');el('tomorrow').innerHTML=list('tomorrow');
