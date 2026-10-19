@@ -203,8 +203,7 @@ def consensus(event):
     """Average of bookmaker-margin-free probabilities. Returns dict or None."""
     home, away = event.get("home_team"), event.get("away_team")
     sums = {"h": 0.0, "d": 0.0, "a": 0.0}
-    best = {"h": 0.0, "a": 0.0}
-    b365 = {}
+    books = {}
     n = 0
     for bm in event.get("bookmakers", []):
         for m in bm.get("markets", []):
@@ -212,10 +211,8 @@ def consensus(event):
                 continue
             px = {o["name"]: o["price"] for o in m.get("outcomes", [])}
             if home in px and away in px and "Draw" in px:
-                best["h"] = max(best["h"], px[home])
-                best["a"] = max(best["a"], px[away])
-                if bm.get("key") == "bet365":
-                    b365 = {"h": px[home], "a": px[away]}
+                books[bm.get("key", "?")] = {"h": px[home], "a": px[away],
+                                             "t": bm.get("title", bm.get("key", "?"))}
                 inv = {"h": 1 / px[home], "d": 1 / px["Draw"], "a": 1 / px[away]}
                 tot = sum(inv.values())
                 for k in sums:
@@ -223,7 +220,9 @@ def consensus(event):
                 n += 1
     if n == 0:
         return None
-    odds = b365 if b365 else best
+    odds = dict(books)
+    odds["avg"] = {"h": round(sum(b["h"] for b in books.values()) / len(books), 2),
+                   "a": round(sum(b["a"] for b in books.values()) / len(books), 2)}
     return {k: round(v / n, 4) for k, v in sums.items()}, odds
 
 
@@ -315,6 +314,7 @@ footer{color:var(--dim);font-size:12px;text-align:center;margin-top:30px}
     <div><label>Bet size</label><select id="fold"></select></div>
     <div><label>Games</label><select id="scope"><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="all">Today + Tomorrow</option></select></div>
   </div>
+  <div style="margin-top:10px"><label>Bookmaker prices</label><select id="book"></select></div>
   <button id="build">Build bet</button>
   <button class="ghost" id="again" style="display:none">Build a different one</button>
 </div>
@@ -335,6 +335,22 @@ var names = {2:'Double',3:'Treble',4:'4-fold',5:'5-fold'};
 var fold = el('fold');
 for (var n=2;n<=20;n++){var o=document.createElement('option');o.value=n;o.textContent=n+'-fold'+(names[n]&&n<4?' ('+names[n]+')':'');fold.appendChild(o);}
 fold.value=3;
+var BN={bet365:'Bet365',paddypower:'Paddy Power',williamhill:'William Hill',ladbrokes:'Ladbrokes',skybet:'Sky Bet',coral:'Coral',betfred:'Betfred',betway:'Betway'};
+var seen={};
+FX.forEach(function(f){Object.keys(f.o||{}).forEach(function(k){if(k!=='avg'&&!seen[k])seen[k]=f.o[k].t||k;});});
+var order=['bet365','paddypower','williamhill','ladbrokes','skybet','coral','betfred','betway'];
+var keys=order.filter(function(k){return seen[k];}).concat(Object.keys(seen).filter(function(k){return order.indexOf(k)<0;}));
+var bsel=el('book');
+keys.forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent=BN[k]||seen[k];bsel.appendChild(o);});
+var oa=document.createElement('option');oa.value='avg';oa.textContent='Average of bookmakers';bsel.appendChild(oa);
+var saved='';try{saved=localStorage.getItem('bkbook')||'';}catch(e){}
+bsel.value=(saved&&(saved==='avg'||seen[saved]))?saved:(seen.bet365?'bet365':(seen.paddypower?'paddypower':'avg'));
+function oddsFor(f,side){
+  var b=bsel.value, o=f.o||{};
+  if(o[b]&&o[b][side])return {v:o[b][side],fb:false};
+  if(o.avg&&o.avg[side])return {v:o.avg[side],fb:b!=='avg'};
+  return {v:Math.round(100/f.p[side])/100,fb:true};
+}
 
 function esc(s){return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]});}
 function dayKey(d){return d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate();}
@@ -357,8 +373,8 @@ function why(f){
 function pick(f){
   var p=f.p, best='h', team=f.h;
   if(p.a>p[best]){best='a';team=f.a;}
-  var o=f.o&&f.o[best]?f.o[best]:Math.round(100/p[best])/100;
-  var r={team:team+' to win', prob:p[best], odds:o, btts:false, form:'', why:why(f), score:p[best]*Math.sqrt(o)};
+  var og=oddsFor(f,best), o=og.v;
+  var r={team:team+' to win', prob:p[best], odds:o, fb:og.fb, btts:false, form:'', why:why(f), score:p[best]*Math.sqrt(o)};
   var b=f.b;
   if(b){
     r.form=f.h+' '+b.h+'/5, '+f.a+' '+b.a+'/5 both scored';
@@ -388,7 +404,7 @@ function build(shuffle){
     if(started(f))return false;
     var b=bucket(f.t);
     return scope==='all'?!!b:b===scope;
-  }).map(function(f){var k=pick(f);return {f:f,team:k.team,prob:k.prob,odds:k.odds,btts:k.btts,form:k.form,why:k.why,score:k.score};});
+  }).map(function(f){var k=pick(f);return {f:f,team:k.team,prob:k.prob,odds:k.odds,btts:k.btts,form:k.form,why:k.why,fb:k.fb,score:k.score};});
   var good=pool.filter(function(l){return l.btts||l.odds>=1.15;});
   if(good.length>=n)pool=good;
   pool.sort(function(a,b){return b.score-a.score;});
@@ -405,16 +421,22 @@ function build(shuffle){
   } else legs=pool.slice(0,n);
   legs.sort(function(a,b){return b.score-a.score;});
   var hasB=legs.some(function(l){return l.btts;});
+  var hasFb=legs.some(function(l){return !l.btts&&l.fb;});
   var total=legs.reduce(function(a,l){return l.btts?a:a*l.odds;},1);
   var html='<div class="panel bet"><h2>'+n+'-fold</h2>'+legs.map(function(l){
     return '<div class="leg"><span><b>'+esc(l.team)+'</b><small>'+esc(l.f.h)+' v '+esc(l.f.a)+' &middot; '+esc(l.f.lg)+' &middot; '+tm(l.f.t)+(l.btts?'<br>'+esc(l.form):'')+(l.why?'<br>'+esc(l.why):'')+'</small></span><span class="pct">'+(l.btts?'check odds':l.odds.toFixed(2))+'</span></div>';
-  }).join('')+'<div class="sum"><span>Total odds'+(hasB?' (without both-teams legs)':'')+'</span><span>'+total.toFixed(2)+'</span></div><div class="stake"><span>Stake &pound;</span><input id="stake" type="number" inputmode="decimal" value="10" min="0"><span class="ret" id="ret"></span></div><div class="note">Picks use bookmaker odds adjusted for form, league position and head-to-head. Odds are a guide and can differ on Bet365. Built from games that have not kicked off. Every leg must win.</div></div>';
+  }).join('')+'<div class="sum"><span>Total odds'+(hasB?' (without both-teams legs)':'')+'</span><span>'+total.toFixed(2)+'</span></div><div class="stake"><span>Stake &pound;</span><input id="stake" type="number" inputmode="decimal" value="10" min="0"><span class="ret" id="ret"></span></div><div class="note">Picks use bookmaker odds adjusted for form, league position and head-to-head. Prices are from the last scan and can change.'+(hasFb?' Some legs use average prices because the chosen bookmaker has none.':'')+' Built from games that have not kicked off. Every leg must win.</div></div>';
   res.innerHTML=html;
   var upd=function(){var v=parseFloat(el('stake').value)||0;el('ret').textContent='Returns £'+(v*total).toFixed(2);};
   el('stake').oninput=upd;upd();
   el('again').style.display='block';
 }
 el('build').onclick=function(){build(false);};
+bsel.onchange=function(){
+  try{localStorage.setItem('bkbook',bsel.value);}catch(e){}
+  el('today').innerHTML=list('today');el('tomorrow').innerHTML=list('tomorrow');
+  if(el('again').style.display==='block')build(false);
+};
 el('again').onclick=function(){build(true);};
 })();
 </script></body></html>
