@@ -284,8 +284,9 @@ TEMPLATE = r"""<!DOCTYPE html>
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;padding:env(safe-area-inset-top) 16px 40px}
 .wrap{max-width:560px;margin:0 auto}
-header{padding:22px 0 10px}
-h1{margin:0;font-size:26px;letter-spacing:-.5px}
+header{padding:34px 0 16px;text-align:center}
+header::after{content:"";display:block;width:70px;height:2px;margin:16px auto 0;background:linear-gradient(90deg,transparent,#fff,transparent)}
+h1{margin:0;font-family:Georgia,"Times New Roman",serif;font-size:40px;font-weight:700;font-style:italic;letter-spacing:1px;background:linear-gradient(180deg,#fff 35%,#7a7a80);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
 .sub{color:var(--dim);font-size:13px;margin-top:2px}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:14px 0}
 .row{display:flex;gap:10px}
@@ -318,7 +319,7 @@ footer{color:var(--dim);font-size:12px;text-align:center;margin-top:30px}
     <div><label>Bet size</label><select id="fold"></select></div>
     <div><label>Games</label><select id="scope"><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="all">Today + Tomorrow</option></select></div>
   </div>
-  <div style="margin-top:10px"><label>Bookmaker prices</label><select id="book"></select></div>
+  <input type="hidden" id="book" value="avg">
   <button id="build">Build bet</button>
   <button class="ghost" id="again" style="display:none">Build a different one</button>
 </div>
@@ -350,7 +351,7 @@ var oa=document.createElement('option');oa.value='avg';oa.textContent='Average o
 var saved='';try{saved=localStorage.getItem('bkbook')||'';}catch(e){}
 bsel.value=(saved&&(saved==='avg'||seen[saved]))?saved:(seen.bet365?'bet365':(seen.paddypower?'paddypower':'avg'));
 function oddsFor(f,side){
-  var b=bsel.value, o=f.o||{};
+  var b='avg', o=f.o||{};
   if(o[b]&&o[b][side])return {v:o[b][side],fb:false};
   if(o.avg&&o.avg[side])return {v:o.avg[side],fb:b!=='avg'};
   return {v:Math.round(100/f.p[side])/100,fb:true};
@@ -429,7 +430,7 @@ function build(shuffle){
   var total=legs.reduce(function(a,l){return l.btts?a:a*l.odds;},1);
   var html='<div class="panel bet"><h2>'+n+'-fold</h2>'+legs.map(function(l){
     return '<div class="leg"><span><b>'+esc(l.team)+'</b><small>'+esc(l.f.h)+' v '+esc(l.f.a)+' &middot; '+esc(l.f.lg)+' &middot; '+tm(l.f.t)+(l.btts?'<br>'+esc(l.form):'')+(l.why?'<br>'+esc(l.why):'')+'</small></span><span class="pct">'+(l.btts?'check odds':l.odds.toFixed(2))+'</span></div>';
-  }).join('')+'<div class="sum"><span>Total odds'+(hasB?' (without both-teams legs)':'')+'</span><span>'+total.toFixed(2)+'</span></div><div class="stake"><span>Stake &pound;</span><input id="stake" type="number" inputmode="decimal" value="10" min="0"><span class="ret" id="ret"></span></div><div class="note">Picks use bookmaker odds adjusted for form, league position and head-to-head. Prices are from the last scan and can change.'+(hasFb?' Some legs use average prices because the chosen bookmaker has none.':'')+' Built from games that have not kicked off. Every leg must win.</div></div>';
+  }).join('')+'<div class="sum"><span>Total odds'+(hasB?' (without both-teams legs)':'')+'</span><span>'+total.toFixed(2)+'</span></div><div class="stake"><span>Stake &pound;</span><input id="stake" type="number" inputmode="decimal" value="10" min="0"><span class="ret" id="ret"></span></div><div class="note">Picks use bookmaker odds adjusted for form, league position and head-to-head. Prices are the average of UK bookmakers from the last scan and can change.'+(hasFb?' Some legs use average prices because the chosen bookmaker has none.':'')+' Built from games that have not kicked off. Every leg must win.</div></div>';
   res.innerHTML=html;
   var upd=function(){var v=parseFloat(el('stake').value)||0;el('ret').textContent='Returns £'+(v*total).toFixed(2);};
   el('stake').oninput=upd;upd();
