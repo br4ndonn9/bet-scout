@@ -178,6 +178,10 @@ def analyse(hid, aid, games, tab, p):
     bp = ((scored(gh) + conceded(ga)) / 2.0) * ((scored(ga) + conceded(gh)) / 2.0)
     if len(meet) >= 2:
         bp = 0.75 * bp + 0.25 * (sum(1 for g in meet if g["b"]) / len(meet))
+    # Last-5 form overstates both-teams-to-score (true base rate is about 50%),
+    # and a strong favourite makes a clean-sheet win more likely.
+    bp = 0.5 + 0.6 * (bp - 0.5)
+    bp *= 1 - 0.3 * max(0.0, max(new_p["h"], new_p["a"]) - 0.45)
     info = {"hf": form_letters(gh), "af": form_letters(ga),
             "hr": th["r"] if th else None, "ar": ta["r"] if ta else None,
             "h2h": [w, d, lo] if meet else None, "bp": round(bp, 2)}
@@ -391,7 +395,7 @@ function pick(f){
     r.form=f.h+' '+b.h+'/5, '+f.a+' '+b.a+'/5 both scored';
     if(b.h>=3&&b.a>=3){
       var bp=f.x?f.x.bp:(b.h+b.a)/10;
-      if(bp>p[best]){r.team='Both teams to score';r.prob=bp;r.odds=null;r.btts=true;r.score=bp;}
+      if(bp>p[best]&&bp>=0.6){r.team='Both teams to score';r.prob=bp;r.odds=null;r.btts=true;r.score=bp;}
     }
   }
   return r;
