@@ -67,16 +67,22 @@ def load_form():
                 cs = comp["competitors"]
                 scores = [int(c["score"]) for c in cs]
                 btts = all(x > 0 for x in scores)
-                for c in cs:
+                if len(cs) != 2:
+                    continue
+                for i, c in enumerate(cs):
                     t = c["team"]
                     for key in (t.get("displayName"), t.get("shortDisplayName")):
                         if key:
                             names[norm(key)] = t["id"]
-                    games.setdefault(t["id"], []).append((ev["date"], btts))
+                    mine, theirs = scores[i], scores[1 - i]
+                    pts = 3 if mine > theirs else (1 if mine == theirs else 0)
+                    games.setdefault(t["id"], []).append(
+                        {"d": ev["date"], "b": btts, "p": pts, "f": mine, "a": theirs,
+                         "o": cs[1 - i]["team"]["id"]})
             except (KeyError, ValueError, IndexError, TypeError):
                 continue
     for tid in games:
-        games[tid].sort(reverse=True)
+        games[tid].sort(key=lambda g: g["d"], reverse=True)
     return names, games
 
 
@@ -105,10 +111,76 @@ def team_form(name, names, games):
             tid = next(iter(best_ids))
     if tid is None or tid not in games:
         return None
-    last = games[tid][:5]
-    if len(last) < 5:
+    if len(games[tid]) < 5:
         return None
-    return sum(1 for _, b in last if b), len(last)
+    return tid
+
+
+TABLE_URL = "https://site.api.espn.com/apis/v2/sports/soccer/{slug}/standings"
+
+
+def load_tables():
+    """Returns team id -> {"r": rank, "n": teams in table, "pl": played, "pts": points}.
+    Domestic league tables take priority over European ones."""
+    tab = {}
+    for slug in ESPN_SLUGS:
+        try:
+            r = requests.get(TABLE_URL.format(slug=slug), timeout=30)
+            data = r.json() if r.status_code == 200 else {}
+        except (requests.RequestException, ValueError):
+            data = {}
+        for ch in data.get("children", []):
+            entries = ch.get("standings", {}).get("entries", [])
+            for e in entries:
+                try:
+                    st = {x["name"]: x.get("value") for x in e.get("stats", [])}
+                    tid = e["team"]["id"]
+                    if tid in tab:
+                        continue
+                    tab[tid] = {"r": int(st.get("rank") or 0), "n": len(entries),
+                                "pl": int(st.get("gamesPlayed") or 0),
+                                "pts": int(st.get("points") or 0)}
+                except (KeyError, ValueError, TypeError):
+                    continue
+    return tab
+
+
+def form_letters(gl):
+    return "".join("W" if g["p"] == 3 else ("D" if g["p"] == 1 else "L") for g in reversed(gl[:5]))
+
+
+def analyse(hid, aid, games, tab, p):
+    """Adjusts market probabilities for form, league position and head-to-head,
+    and estimates both-teams-to-score chance. Returns (new_p, info)."""
+    gh, ga = games[hid], games[aid]
+    fp_h, fp_a = sum(g["p"] for g in gh[:5]), sum(g["p"] for g in ga[:5])
+    adj = 0.06 * (fp_h - fp_a) / 15.0
+    th, ta = tab.get(hid), tab.get(aid)
+    if th and ta and th["pl"] > 0 and ta["pl"] > 0:
+        adj += 0.05 * (th["pts"] / th["pl"] - ta["pts"] / ta["pl"]) / 3.0
+    meet = [g for g in gh if g["o"] == aid][:5]
+    w = sum(1 for g in meet if g["p"] == 3)
+    d = sum(1 for g in meet if g["p"] == 1)
+    lo = len(meet) - w - d
+    if len(meet) >= 2:
+        adj += 0.04 * (w - lo) / len(meet)
+    adj = max(-0.07, min(0.07, adj))
+    new_p = {"h": round(max(0.02, p["h"] + adj), 4), "d": p["d"],
+             "a": round(max(0.02, p["a"] - adj), 4)}
+
+    def scored(gl):
+        return sum(1 for g in gl[:5] if g["f"] > 0) / 5.0
+
+    def conceded(gl):
+        return sum(1 for g in gl[:5] if g["a"] > 0) / 5.0
+
+    bp = ((scored(gh) + conceded(ga)) / 2.0) * ((scored(ga) + conceded(gh)) / 2.0)
+    if len(meet) >= 2:
+        bp = 0.75 * bp + 0.25 * (sum(1 for g in meet if g["b"]) / len(meet))
+    info = {"hf": form_letters(gh), "af": form_letters(ga),
+            "hr": th["r"] if th else None, "ar": ta["r"] if ta else None,
+            "h2h": [w, d, lo] if meet else None, "bp": round(bp, 2)}
+    return new_p, info
 
 
 def fetch(sport_key):
@@ -163,6 +235,10 @@ def scan():
         names, games = load_form()
     except Exception:
         names, games = {}, {}
+    try:
+        tab = load_tables()
+    except Exception:
+        tab = {}
     for key, name in LEAGUES:
         events, err = fetch(key)
         if err:
@@ -179,12 +255,14 @@ def scan():
             if not res:
                 continue
             p, o = res
-            fh = team_form(ev["home_team"], names, games)
-            fa = team_form(ev["away_team"], names, games)
+            hid = team_form(ev["home_team"], names, games)
+            aid = team_form(ev["away_team"], names, games)
             fx = {"lg": name, "h": ev["home_team"], "a": ev["away_team"],
                   "t": ev["commence_time"], "p": p, "o": o}
-            if fh and fa:
-                fx["b"] = {"h": fh[0], "a": fa[0]}
+            if hid and aid:
+                fx["p"], fx["x"] = analyse(hid, aid, games, tab, p)
+                fx["b"] = {"h": sum(1 for g in games[hid][:5] if g["b"]),
+                           "a": sum(1 for g in games[aid][:5] if g["b"])}
             fixtures.append(fx)
     fixtures.sort(key=lambda f: f["t"])
     return fixtures, errors
@@ -268,16 +346,24 @@ function bucket(t){
 }
 function tm(t){return new Date(t).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});}
 function started(f){return new Date(f.t).getTime()<=Date.now();}
+function ord(n){var s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
+function why(f){
+  var x=f.x; if(!x)return '';
+  var t='Form '+x.hf+' v '+x.af;
+  if(x.hr&&x.ar)t+=' · '+ord(x.hr)+' v '+ord(x.ar);
+  if(x.h2h)t+=' · H2H '+f.h+' '+x.h2h[0]+'W '+x.h2h[1]+'D '+x.h2h[2]+'L';
+  return t;
+}
 function pick(f){
   var p=f.p, best='h', team=f.h;
   if(p.a>p[best]){best='a';team=f.a;}
   var o=f.o&&f.o[best]?f.o[best]:Math.round(100/p[best])/100;
-  var r={team:team+' to win', prob:p[best], odds:o, btts:false, form:'', score:p[best]*Math.sqrt(o)};
+  var r={team:team+' to win', prob:p[best], odds:o, btts:false, form:'', why:why(f), score:p[best]*Math.sqrt(o)};
   var b=f.b;
   if(b){
     r.form=f.h+' '+b.h+'/5, '+f.a+' '+b.a+'/5 both scored';
     if(b.h>=3&&b.a>=3){
-      var bp=(b.h+b.a)/10;
+      var bp=f.x?f.x.bp:(b.h+b.a)/10;
       if(bp>p[best]){r.team='Both teams to score';r.prob=bp;r.odds=null;r.btts=true;r.score=bp;}
     }
   }
@@ -302,7 +388,7 @@ function build(shuffle){
     if(started(f))return false;
     var b=bucket(f.t);
     return scope==='all'?!!b:b===scope;
-  }).map(function(f){var k=pick(f);return {f:f,team:k.team,prob:k.prob,odds:k.odds,btts:k.btts,form:k.form,score:k.score};});
+  }).map(function(f){var k=pick(f);return {f:f,team:k.team,prob:k.prob,odds:k.odds,btts:k.btts,form:k.form,why:k.why,score:k.score};});
   var good=pool.filter(function(l){return l.btts||l.odds>=1.15;});
   if(good.length>=n)pool=good;
   pool.sort(function(a,b){return b.score-a.score;});
@@ -321,8 +407,8 @@ function build(shuffle){
   var hasB=legs.some(function(l){return l.btts;});
   var total=legs.reduce(function(a,l){return l.btts?a:a*l.odds;},1);
   var html='<div class="panel bet"><h2>'+n+'-fold</h2>'+legs.map(function(l){
-    return '<div class="leg"><span><b>'+esc(l.team)+'</b><small>'+esc(l.f.h)+' v '+esc(l.f.a)+' &middot; '+esc(l.f.lg)+' &middot; '+tm(l.f.t)+(l.btts?'<br>'+esc(l.form):'')+'</small></span><span class="pct">'+(l.btts?'check odds':l.odds.toFixed(2))+'</span></div>';
-  }).join('')+'<div class="sum"><span>Total odds'+(hasB?' (without both-teams legs)':'')+'</span><span>'+total.toFixed(2)+'</span></div><div class="stake"><span>Stake &pound;</span><input id="stake" type="number" inputmode="decimal" value="10" min="0"><span class="ret" id="ret"></span></div><div class="note">Odds are a guide and can differ on Bet365. Built from games that have not kicked off. Every leg must win.</div></div>';
+    return '<div class="leg"><span><b>'+esc(l.team)+'</b><small>'+esc(l.f.h)+' v '+esc(l.f.a)+' &middot; '+esc(l.f.lg)+' &middot; '+tm(l.f.t)+(l.btts?'<br>'+esc(l.form):'')+(l.why?'<br>'+esc(l.why):'')+'</small></span><span class="pct">'+(l.btts?'check odds':l.odds.toFixed(2))+'</span></div>';
+  }).join('')+'<div class="sum"><span>Total odds'+(hasB?' (without both-teams legs)':'')+'</span><span>'+total.toFixed(2)+'</span></div><div class="stake"><span>Stake &pound;</span><input id="stake" type="number" inputmode="decimal" value="10" min="0"><span class="ret" id="ret"></span></div><div class="note">Picks use bookmaker odds adjusted for form, league position and head-to-head. Odds are a guide and can differ on Bet365. Built from games that have not kicked off. Every leg must win.</div></div>';
   res.innerHTML=html;
   var upd=function(){var v=parseFloat(el('stake').value)||0;el('ret').textContent='Returns £'+(v*total).toFixed(2);};
   el('stake').oninput=upd;upd();
