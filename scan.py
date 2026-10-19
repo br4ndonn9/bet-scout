@@ -32,6 +32,7 @@ BASE = "https://api.the-odds-api.com/v4/sports/{sport}/odds/"
 ESPN_SLUGS = ["eng.1", "eng.2", "esp.1", "ita.1", "ger.1", "fra.1", "ned.1", "por.1",
               "tur.1", "usa.1", "uefa.champions", "uefa.europa", "uefa.europa.conf"]
 ESPN_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/{slug}/scoreboard"
+EXCHANGES = {"betfair_ex_uk", "smarkets", "matchbook"}
 ALIASES = {"slavia praha": "slavia prague"}
 DROP = {"fc", "cf", "afc", "sc", "ac", "ssc", "cd", "ud", "rc", "sv", "fk", "bk", "calcio"}
 
@@ -211,14 +212,17 @@ def consensus(event):
                 continue
             px = {o["name"]: o["price"] for o in m.get("outcomes", [])}
             if home in px and away in px and "Draw" in px:
-                books[bm.get("key", "?")] = {"h": px[home], "a": px[away],
-                                             "t": bm.get("title", bm.get("key", "?"))}
+                if bm.get("key") not in EXCHANGES:
+                    books[bm.get("key", "?")] = {"h": px[home], "a": px[away],
+                                                 "t": bm.get("title", bm.get("key", "?"))}
                 inv = {"h": 1 / px[home], "d": 1 / px["Draw"], "a": 1 / px[away]}
                 tot = sum(inv.values())
                 for k in sums:
                     sums[k] += inv[k] / tot
                 n += 1
     if n == 0:
+        return None
+    if not books:
         return None
     odds = dict(books)
     odds["avg"] = {"h": round(sum(b["h"] for b in books.values()) / len(books), 2),
