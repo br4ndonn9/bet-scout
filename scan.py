@@ -259,7 +259,7 @@ def consensus(event):
 
 def scan():
     now = datetime.datetime.now(datetime.timezone.utc)
-    limit = now + datetime.timedelta(hours=60)
+    limit = now + datetime.timedelta(hours=96)
     fixtures, errors = [], []
     try:
         names, games = load_form()
@@ -392,7 +392,7 @@ function bucket(t){
   if(dayKey(d)===dayKey(tm))return 'tomorrow';
   return null;
 }
-function tm(t){return new Date(t).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});}
+function tm(t){var d=new Date(t);return (dayKey(d)===dayKey(new Date())?'':d.toLocaleDateString([],{weekday:'short'})+' ')+d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});}
 function started(f){return new Date(f.t).getTime()<=Date.now();}
 function ord(n){var s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
 function why(f){
