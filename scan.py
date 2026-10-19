@@ -346,7 +346,7 @@ footer{color:var(--dim);font-size:12px;text-align:center;margin-top:30px}
     <div><label>Bet size</label><select id="fold"></select></div>
     <div><label>Games</label><select id="scope"><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="all">Today + Tomorrow</option><option value="upcoming">All upcoming games</option></select></div>
   </div>
-  <div style="margin-top:10px"><label>Both teams to score picks</label><select id="mix"><option value="auto">Normal</option><option value="more">More</option></select></div><input type="hidden" id="book" value="avg">
+  <input type="hidden" id="book" value="avg">
   <button id="build">Build bet</button>
   <button class="ghost" id="again" style="display:none">Build a different one</button>
 </div>
@@ -403,7 +403,7 @@ function why(f){
   if(x.h2h)t+=' · H2H '+f.h+' '+x.h2h[0]+'W '+x.h2h[1]+'D '+x.h2h[2]+'L';
   return t;
 }
-function pick(f){
+function pick(f,noB){
   var p=f.p, best='h', team=f.h;
   if(p.a>p[best]){best='a';team=f.a;}
   var og=oddsFor(f,best), o=og.v;
@@ -417,7 +417,7 @@ function pick(f){
   var b=f.b;
   if(b){
     r.form=f.h+' '+b.h+'/5, '+f.a+' '+b.a+'/5 both scored';
-    var more=el('mix').value==='more';
+    var more=false;if(noB)return r;
     if(b.h+b.a>=(more?5:6)){
       var bp=f.x?f.x.bp:(b.h+b.a)/10;
       if(more?bp>=0.5:(bp>p[best]&&bp>=0.55)){r.team='Both teams to score';r.prob=bp;r.odds=null;r.btts=true;r.score=bp*(more?1.7:1.34);}
@@ -458,7 +458,7 @@ function build(shuffle){
     var wide=pool.slice(0,Math.min(pool.length,n+Math.max(3,n)));
     for(var i=wide.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=wide[i];wide[i]=wide[j];wide[j]=t;}
     legs=wide.slice(0,n);
-  } else legs=pool.slice(0,n);
+  } else legs=pool.slice(0,n);var cap=Math.max(1,Math.round(n*0.25)),nb=0;legs=legs.map(function(l){if(!l.btts||++nb<=cap)return l;var k=pick(l.f,true);return {f:l.f,team:k.team,prob:k.prob,odds:k.odds,btts:false,form:'',why:k.why,fb:k.fb,score:k.score};});
   legs.sort(function(a,b){return b.score-a.score;});
   var hasB=legs.some(function(l){return l.btts;});
   var hasFb=legs.some(function(l){return !l.btts&&l.fb;});
@@ -473,7 +473,7 @@ function build(shuffle){
   el('again').style.display='block';
 }
 el('build').onclick=function(){build(false);};
-el('mix').onchange=function(){el('today').innerHTML=list('today');el('tomorrow').innerHTML=list('tomorrow');if(el('again').style.display==='block')build(false);};
+
 bsel.onchange=function(){
   try{localStorage.setItem('bkbook',bsel.value);}catch(e){}
   el('today').innerHTML=list('today');el('tomorrow').innerHTML=list('tomorrow');
