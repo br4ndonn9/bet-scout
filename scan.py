@@ -344,7 +344,7 @@ footer{color:var(--dim);font-size:12px;text-align:center;margin-top:30px}
 <div class="panel">
   <div class="row">
     <div><label>Bet size</label><select id="fold"></select></div>
-    <div><label>Games</label><select id="scope"><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="all">Today + Tomorrow</option></select></div>
+    <div><label>Games</label><select id="scope"><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="all">Today + Tomorrow</option><option value="upcoming">All upcoming games</option></select></div>
   </div>
   <div style="margin-top:10px"><label>Both teams to score picks</label><select id="mix"><option value="auto">Normal</option><option value="more">More</option></select></div><input type="hidden" id="book" value="avg">
   <button id="build">Build bet</button>
@@ -443,14 +443,14 @@ function build(shuffle){
   var pool=FX.filter(function(f){
     if(started(f))return false;
     var b=bucket(f.t);
-    return scope==='all'?!!b:b===scope;
+    return scope==='upcoming'?true:(scope==='all'?!!b:b===scope);
   }).map(function(f){var k=pick(f);return {f:f,team:k.team,prob:k.prob,odds:k.odds,btts:k.btts,form:k.form,why:k.why,fb:k.fb,score:k.score};});
   var good=pool.filter(function(l){return l.btts||l.odds>=1.15;});
   if(good.length>=n)pool=good;
   pool.sort(function(a,b){return b.score-a.score;});
   var res=el('result');
   if(pool.length<n){
-    res.innerHTML='<div class="panel">Only '+pool.length+' game'+(pool.length===1?'':'s')+' left to bet on. Pick a smaller bet size'+(scope!=='all'?' or choose Today + Tomorrow':'')+'.</div>';
+    res.innerHTML='<div class="panel">Only '+pool.length+' game'+(pool.length===1?'':'s')+' left to bet on. Pick a smaller bet size'+(scope!=='upcoming'?' or choose All upcoming games':'')+'.</div>';
     el('again').style.display='none';return;
   }
   var legs;
