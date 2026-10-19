@@ -2,6 +2,7 @@
 
 import os
 import re
+import math
 import json
 import difflib
 import unicodedata
@@ -146,6 +147,25 @@ def load_tables():
     return tab
 
 
+GRID = [round(0.2 + 0.05 * i, 2) for i in range(64)]
+PMF = {l: [math.exp(-l) * l ** k / math.factorial(k) for k in range(9)] for l in GRID}
+CDF = {l: [sum(PMF[l][:k + 1]) for k in range(9)] for l in GRID}
+
+
+def fit_goals(ph, pa):
+    """Finds expected goals (home, away) whose Poisson win probabilities best match
+    the market's home and away win chances. Standard 'goal expectancy' method."""
+    best, best_err = (1.4, 1.1), 9.0
+    for lh in GRID:
+        for la in GRID:
+            hw = sum(PMF[lh][i] * CDF[la][i - 1] for i in range(1, 9))
+            aw = sum(PMF[la][i] * CDF[lh][i - 1] for i in range(1, 9))
+            err = (hw - ph) ** 2 + (aw - pa) ** 2
+            if err < best_err:
+                best, best_err = (lh, la), err
+    return best
+
+
 def form_letters(gl):
     return "".join("W" if g["p"] == 3 else ("D" if g["p"] == 1 else "L") for g in reversed(gl[:5]))
 
@@ -178,13 +198,16 @@ def analyse(hid, aid, games, tab, p):
     bp = ((scored(gh) + conceded(ga)) / 2.0) * ((scored(ga) + conceded(gh)) / 2.0)
     if len(meet) >= 2:
         bp = 0.75 * bp + 0.25 * (sum(1 for g in meet if g["b"]) / len(meet))
-    # Last-5 form overstates both-teams-to-score (true base rate is about 50%),
-    # and a strong favourite makes a clean-sheet win more likely.
-    bp = 0.5 + 0.6 * (bp - 0.5)
-    bp *= 1 - 0.3 * max(0.0, max(new_p["h"], new_p["a"]) - 0.45)
+    # Last-5 form alone overstates both-teams-to-score, so it is shrunk toward the
+    # normal rate and blended with the goals the betting market itself implies.
+    bp_form = 0.5 + 0.6 * (bp - 0.5)
+    lh, la = fit_goals(new_p["h"], new_p["a"])
+    bp_model = (1 - math.exp(-lh)) * (1 - math.exp(-la))
+    bp = 0.65 * bp_model + 0.35 * bp_form
     info = {"hf": form_letters(gh), "af": form_letters(ga),
             "hr": th["r"] if th else None, "ar": ta["r"] if ta else None,
-            "h2h": [w, d, lo] if meet else None, "bp": round(bp, 2)}
+            "h2h": [w, d, lo] if meet else None, "bp": round(bp, 2),
+            "eg": [round(lh, 1), round(la, 1)]}
     return new_p, info
 
 
@@ -376,6 +399,7 @@ function why(f){
   var x=f.x; if(!x)return '';
   var t='Form '+x.hf+' v '+x.af;
   if(x.hr&&x.ar)t+=' · '+ord(x.hr)+' v '+ord(x.ar);
+  if(x.eg)t+=' · Exp. goals '+x.eg[0]+'-'+x.eg[1];
   if(x.h2h)t+=' · H2H '+f.h+' '+x.h2h[0]+'W '+x.h2h[1]+'D '+x.h2h[2]+'L';
   return t;
 }
@@ -393,9 +417,9 @@ function pick(f){
   var b=f.b;
   if(b){
     r.form=f.h+' '+b.h+'/5, '+f.a+' '+b.a+'/5 both scored';
-    if(b.h>=3&&b.a>=3){
+    if(b.h+b.a>=6){
       var bp=f.x?f.x.bp:(b.h+b.a)/10;
-      if(bp>p[best]&&bp>=0.6){r.team='Both teams to score';r.prob=bp;r.odds=null;r.btts=true;r.score=bp;}
+      if(bp>p[best]&&bp>=0.55){r.team='Both teams to score';r.prob=bp;r.odds=null;r.btts=true;r.score=bp*1.34;}
     }
   }
   return r;
