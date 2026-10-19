@@ -379,7 +379,13 @@ function pick(f){
   var p=f.p, best='h', team=f.h;
   if(p.a>p[best]){best='a';team=f.a;}
   var og=oddsFor(f,best), o=og.v;
-  var r={team:team+' to win', prob:p[best], odds:o, fb:og.fb, btts:false, form:'', why:why(f), score:p[best]*Math.sqrt(o)};
+  var ps=[],bk=f.o||{};
+  Object.keys(bk).forEach(function(k){if(k!=='avg'&&bk[k][best])ps.push(bk[k][best]);});
+  var mean=ps.reduce(function(a,b){return a+b;},0)/(ps.length||1);
+  var sd=Math.sqrt(ps.reduce(function(a,b){return a+(b-mean)*(b-mean);},0)/(ps.length||1));
+  var cv=mean?sd/mean:0;
+  var sc=(p[best]*Math.sqrt(o)-0.6*Math.max(0,p.d-0.24))*(1-Math.min(0.1,cv));
+  var r={team:team+' to win', prob:p[best], odds:o, fb:og.fb, btts:false, form:'', why:why(f), score:sc};
   var b=f.b;
   if(b){
     r.form=f.h+' '+b.h+'/5, '+f.a+' '+b.a+'/5 both scored';
@@ -428,9 +434,10 @@ function build(shuffle){
   var hasB=legs.some(function(l){return l.btts;});
   var hasFb=legs.some(function(l){return !l.btts&&l.fb;});
   var total=legs.reduce(function(a,l){return l.btts?a:a*l.odds;},1);
+  var chance=legs.reduce(function(a,l){return a*l.prob;},1);
   var html='<div class="panel bet"><h2>'+n+'-fold</h2>'+legs.map(function(l){
     return '<div class="leg"><span><b>'+esc(l.team)+'</b><small>'+esc(l.f.h)+' v '+esc(l.f.a)+' &middot; '+esc(l.f.lg)+' &middot; '+tm(l.f.t)+(l.btts?'<br>'+esc(l.form):'')+(l.why?'<br>'+esc(l.why):'')+'</small></span><span class="pct">'+(l.btts?'check odds':l.odds.toFixed(2))+'</span></div>';
-  }).join('')+'<div class="sum"><span>Total odds'+(hasB?' (without both-teams legs)':'')+'</span><span>'+total.toFixed(2)+'</span></div><div class="stake"><span>Stake &pound;</span><input id="stake" type="number" inputmode="decimal" value="10" min="0"><span class="ret" id="ret"></span></div><div class="note">Picks use bookmaker odds adjusted for form, league position and head-to-head. Prices are the average of UK bookmakers from the last scan and can change.'+(hasFb?' Some legs use average prices because the chosen bookmaker has none.':'')+' Built from games that have not kicked off. Every leg must win.</div></div>';
+  }).join('')+'<div class="sum"><span>Total odds'+(hasB?' (without both-teams legs)':'')+'</span><span>'+total.toFixed(2)+'</span></div><div class="sum" style="border-top:0;padding-top:6px"><span>Chance all '+n+' win</span><span>'+(chance>=0.1?Math.round(chance*100):(chance*100).toFixed(1))+'%</span></div><div class="stake"><span>Stake &pound;</span><input id="stake" type="number" inputmode="decimal" value="10" min="0"><span class="ret" id="ret"></span></div><div class="note">'+(n>=4?'Each extra leg lowers the chance. 3 or 4 legs land far more often. ':'')+'Picks use bookmaker odds adjusted for form, league position and head-to-head. Prices are the average of UK bookmakers from the last scan and can change.'+(hasFb?' Some legs use average prices because the chosen bookmaker has none.':'')+' Built from games that have not kicked off. Every leg must win.</div></div>';
   res.innerHTML=html;
   var upd=function(){var v=parseFloat(el('stake').value)||0;el('ret').textContent='Returns £'+(v*total).toFixed(2);};
   el('stake').oninput=upd;upd();
