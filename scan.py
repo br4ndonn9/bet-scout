@@ -458,7 +458,7 @@ function build(shuffle){
     var wide=pool.slice(0,Math.min(pool.length,n+Math.max(3,n)));
     for(var i=wide.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=wide[i];wide[i]=wide[j];wide[j]=t;}
     legs=wide.slice(0,n);
-  } else legs=pool.slice(0,n);var cap=Math.max(1,Math.round(n*0.3)),nb=0;legs=legs.map(function(l){if(!l.btts||++nb<=cap)return l;var k=pick(l.f,true);return {f:l.f,team:k.team,prob:k.prob,odds:k.odds,btts:false,form:'',why:k.why,fb:k.fb,score:k.score};});
+  } else legs=pool.slice(0,n);var cap=Math.max(1,n),nb=0;legs=legs.map(function(l){if(!l.btts||++nb<=cap)return l;var k=pick(l.f,true);return {f:l.f,team:k.team,prob:k.prob,odds:k.odds,btts:false,form:'',why:k.why,fb:k.fb,score:k.score};});
   legs.sort(function(a,b){return b.score-a.score;});
   var hasB=legs.some(function(l){return l.btts;});
   var hasFb=legs.some(function(l){return !l.btts&&l.fb;});
