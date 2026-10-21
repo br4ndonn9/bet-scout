@@ -201,9 +201,9 @@ def analyse(hid, aid, games, tab, p):
     # Last-5 form alone overstates both-teams-to-score, so it is shrunk toward the
     # normal rate and blended with the goals the betting market itself implies.
     bp_form = 0.5 + 0.6 * (bp - 0.5)
-    lh, la = fit_goals(new_p["h"], new_p["a"])
+    lh, la = fit_goals(new_p["h"], new_p["a"]); gfa = lambda gl: sum(g["f"] for g in gl[:10]) / len(gl[:10]); gaa = lambda gl: sum(g["a"] for g in gl[:10]) / len(gl[:10]); sh, ch, sa, ca = [0.7 * v + 0.42 for v in (gfa(gh), gaa(gh), gfa(ga), gaa(ga))]; bp_goals = (1 - math.exp(-(sh + ca) / 2)) * (1 - math.exp(-(sa + ch) / 2))
     bp_model = (1 - math.exp(-lh)) * (1 - math.exp(-la))
-    bp = 0.65 * bp_model + 0.35 * bp_form
+    bp = 0.5 * bp_model + 0.2 * bp_form + 0.3 * bp_goals + (0.04 if th and ta and th["r"] <= max(3, th["n"] // 5) and ta["r"] <= max(3, ta["n"] // 5) else 0)
     info = {"hf": form_letters(gh), "af": form_letters(ga),
             "hr": th["r"] if th else None, "ar": ta["r"] if ta else None,
             "h2h": [w, d, lo] if meet else None, "bp": round(bp, 2),
@@ -418,9 +418,9 @@ function pick(f,noB){
   if(b){
     r.form=f.h+' '+b.h+'/5, '+f.a+' '+b.a+'/5 both scored';
     var more=false;if(noB)return r;
-    if(b.h+b.a>=(more?5:6)){
-      var bp=f.x?f.x.bp:(b.h+b.a)/10;
-      if(more?bp>=0.5:(bp>p[best]&&bp>=0.55)){r.team='Both teams to score';r.prob=bp;r.odds=null;r.btts=true;r.score=bp*(more?1.7:1.34);}
+    if(f.x){
+      var bp=f.x.bp,bs=Math.sqrt(0.92*bp);
+      if(bp>=0.5&&bs>sc){r.team='Both teams to score';r.prob=bp;r.odds=null;r.btts=true;r.score=bs;}
     }
   }
   return r;
@@ -458,7 +458,7 @@ function build(shuffle){
     var wide=pool.slice(0,Math.min(pool.length,n+Math.max(3,n)));
     for(var i=wide.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=wide[i];wide[i]=wide[j];wide[j]=t;}
     legs=wide.slice(0,n);
-  } else legs=pool.slice(0,n);var cap=Math.max(1,Math.round(n*0.25)),nb=0;legs=legs.map(function(l){if(!l.btts||++nb<=cap)return l;var k=pick(l.f,true);return {f:l.f,team:k.team,prob:k.prob,odds:k.odds,btts:false,form:'',why:k.why,fb:k.fb,score:k.score};});
+  } else legs=pool.slice(0,n);var cap=Math.max(1,Math.round(n*0.3)),nb=0;legs=legs.map(function(l){if(!l.btts||++nb<=cap)return l;var k=pick(l.f,true);return {f:l.f,team:k.team,prob:k.prob,odds:k.odds,btts:false,form:'',why:k.why,fb:k.fb,score:k.score};});
   legs.sort(function(a,b){return b.score-a.score;});
   var hasB=legs.some(function(l){return l.btts;});
   var hasFb=legs.some(function(l){return !l.btts&&l.fb;});
