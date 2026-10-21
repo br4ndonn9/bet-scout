@@ -13,7 +13,7 @@ API_KEY = os.environ.get("ODDS_API_KEY", "").strip()
 
 LEAGUES = [
     ("soccer_epl", "Premier League"),
-    ("soccer_efl_champ", "Championship"),
+    ("soccer_efl_champ", "Championship"), ("soccer_england_league1", "League One"), ("soccer_england_league2", "League Two"),
     ("soccer_spain_la_liga", "La Liga"),
     ("soccer_italy_serie_a", "Serie A"),
     ("soccer_germany_bundesliga", "Bundesliga"),
@@ -31,7 +31,7 @@ BASE = "https://api.the-odds-api.com/v4/sports/{sport}/odds/"
 
 # Free public results feed (no key) used for each team's last-5 form.
 ESPN_SLUGS = ["eng.1", "eng.2", "esp.1", "ita.1", "ger.1", "fra.1", "ned.1", "por.1",
-              "tur.1", "usa.1", "uefa.champions", "uefa.europa", "uefa.europa.conf"]
+              "tur.1", "usa.1", "eng.3", "eng.4", "uefa.champions", "uefa.europa", "uefa.europa.conf"]
 ESPN_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/{slug}/scoreboard"
 EXCHANGES = {"betfair_ex_uk", "smarkets", "matchbook"}
 ALIASES = {"slavia praha": "slavia prague"}
