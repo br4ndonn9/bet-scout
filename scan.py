@@ -203,7 +203,7 @@ def analyse(hid, aid, games, tab, p):
     bp_form = 0.5 + 0.6 * (bp - 0.5)
     lh, la = fit_goals(new_p["h"], new_p["a"]); gfa = lambda gl: sum(g["f"] for g in gl[:10]) / len(gl[:10]); gaa = lambda gl: sum(g["a"] for g in gl[:10]) / len(gl[:10]); sh, ch, sa, ca = [0.7 * v + 0.42 for v in (gfa(gh), gaa(gh), gfa(ga), gaa(ga))]; bp_goals = (1 - math.exp(-(sh + ca) / 2)) * (1 - math.exp(-(sa + ch) / 2))
     bp_model = (1 - math.exp(-lh)) * (1 - math.exp(-la))
-    bp = 0.5 * bp_model + 0.2 * bp_form + 0.3 * bp_goals + (0.04 if th and ta and th["r"] <= max(3, th["n"] // 5) and ta["r"] <= max(3, ta["n"] // 5) else 0)
+    bp = 0.5 * bp_model + 0.2 * bp_form + 0.3 * bp_goals + (0.04 if th and ta and th["r"] <= max(3, th["n"] // 5) and ta["r"] <= max(3, ta["n"] // 5) else 0) + (0.06 if (lambda u, f: sum(1 for g in u[:5] if g["f"] > 0) >= 4 and sum(g["p"] for g in u[:5]) >= 7 and sum(1 for g in f[:5] if g["f"] > 0) >= 4)(*((ga, gh) if new_p["h"] >= new_p["a"] else (gh, ga))) else 0)
     info = {"hf": form_letters(gh), "af": form_letters(ga),
             "hr": th["r"] if th else None, "ar": ta["r"] if ta else None,
             "h2h": [w, d, lo] if meet else None, "bp": round(bp, 2),
@@ -419,7 +419,7 @@ function pick(f,noB){
     r.form=f.h+' '+b.h+'/5, '+f.a+' '+b.a+'/5 both scored';
     var more=false;if(noB)return r;
     if(f.x){
-      var bp=f.x.bp,bs=Math.sqrt(0.92*bp);
+      var bp=f.x.bp,bs=Math.sqrt(0.97*bp);
       if(bp>=0.5&&bs>sc){r.team='Both teams to score';r.prob=bp;r.odds=null;r.btts=true;r.score=bs;}
     }
   }
