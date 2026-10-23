@@ -445,7 +445,7 @@ function build(shuffle){
     var b=bucket(f.t);
     return scope==='upcoming'?true:(scope==='all'?!!b:b===scope);
   }).map(function(f){var k=pick(f);return {f:f,team:k.team,prob:k.prob,odds:k.odds,btts:k.btts,form:k.form,why:k.why,fb:k.fb,score:k.score};});
-  var good=pool.filter(function(l){return l.btts||l.odds>=1.15;});
+  var good=pool.filter(function(l){return l.btts||(l.odds>=1.15&&l.prob>=0.45);});
   if(good.length>=n)pool=good;
   pool.sort(function(a,b){return b.score-a.score;});
   var res=el('result');
