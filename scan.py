@@ -412,7 +412,7 @@ function pick(f,noB){
   var mean=ps.reduce(function(a,b){return a+b;},0)/(ps.length||1);
   var sd=Math.sqrt(ps.reduce(function(a,b){return a+(b-mean)*(b-mean);},0)/(ps.length||1));
   var cv=mean?sd/mean:0;
-  var sc=(p[best]*Math.sqrt(o)-0.6*Math.max(0,p.d-0.24))*(1-Math.min(0.1,cv));
+  var sc=(p[best]*Math.pow(o,0.35)-0.6*Math.max(0,p.d-0.24))*(1-Math.min(0.1,cv))*Math.min(1,Math.pow(p[best]/0.55,2));
   var r={team:team+' to win', prob:p[best], odds:o, fb:og.fb, btts:false, form:'', why:why(f), score:sc};
   var b=f.b;
   if(b){
