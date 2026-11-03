@@ -1,4 +1,4 @@
-now.os.path.exists("docs/index.html") and ("Updated " + now.strftime("%a %d %b")) in open("docs/index.html", encoding="utf-8").read()[:6000]hour >= 10 and os.path.exists("docs/index.html")"""BK's Bets - daily odds scan. Writes docs/index.html (served by GitHub Pages)."""
+"""BK's Bets - daily odds scan. Writes docs/index.html (served by GitHub Pages)."""
 
 import os
 import re
@@ -500,7 +500,7 @@ def main():
     os.makedirs("docs", exist_ok=True)
     now = datetime.datetime.now(datetime.timezone.utc)
     # The 12:00 run is skipped unless forced, to save free API credits.
-    if os.environ.get("GITHUB_EVENT_NAME") == "schedule" and now.hour >= 10 and os.path.exists("docs/index.html"):
+    if os.environ.get("GITHUB_EVENT_NAME") == "schedule" and os.path.exists("docs/index.html") and ("Updated " + now.strftime("%a %d %b")) in open("docs/index.html", encoding="utf-8").read()[:6000]:
         print("Afternoon run skipped to save credits.")
         return
     if not API_KEY:
