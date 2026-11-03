@@ -1,4 +1,4 @@
-"""BK's Bets - daily odds scan. Writes docs/index.html (served by GitHub Pages)."""
+now.os.path.exists("docs/index.html") and ("Updated " + now.strftime("%a %d %b")) in open("docs/index.html", encoding="utf-8").read()[:6000]hour >= 10 and os.path.exists("docs/index.html")"""BK's Bets - daily odds scan. Writes docs/index.html (served by GitHub Pages)."""
 
 import os
 import re
